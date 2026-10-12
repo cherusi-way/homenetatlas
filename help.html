@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>HomeNet Atlas 使い方ガイド</title>
+<meta name="description" content="HomeNet Atlas（わが家のネットワーク台帳・構成図）の使い方">
+<style>
+:root {
+  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "BIZ UDGothic", monospace;
+  --canvas: #EDF0F3; --canvas-dot: #C2CAD3; --chrome: #FFFFFF; --surface: #FFFFFF; --surface-2: #F4F6F8; --surface-3: #E8ECF0;
+  --line: #DCE1E7; --line-strong: #C3CBD4; --ink: #17202B; --ink-2: #364250; --muted: #5D6876; --faint: #8A95A2;
+  --primary-bg: #17202B; --primary-fg: #FFFFFF; --sel: #FFC21A; --sel-ink: #17202B; --sel-soft: #FFF2C2;
+  --danger: #C23A30; --danger-soft: #FCEBE9; --ok: #138A5E; --ok-soft: #DDF1E6; --poe: #E9B200;
+  --m-lan: #1D6FD8; --m-wifi: #8A4CDB; --m-fiber: #E8700A; --m-other: #77838F;
+  --node-bg: #FFFFFF; --node-border: #CDD4DC; --node-ink: #17202B; --node-sub: #5D6876;
+  --infra-bg: #17202B; --infra-ink: #FFFFFF; --infra-sub: #A9B4C1;
+  --g-client: #E1EBFA; --g-client-ink: #1C5AAE; --room-bg: #FFFFFF; --room-border: #D2D9E0; --tape: #FFEE9E; --note: #FBEFC4; --note-line: #E9D27A;
+  --port: #0C1116; --port-cell: #F4F6F8; --panel-dark: #1E262F; --panel-light: #F7F8FA; --pcell-d: #2B343E;
+  --shadow: 0 1px 2px rgba(23, 32, 43, 0.06), 0 6px 20px rgba(23, 32, 43, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0F141A; --canvas-dot: #263140; --chrome: #151B22; --surface: #1A2129; --surface-2: #212933; --surface-3: #2A3440;
+    --line: #2A333E; --line-strong: #3A4552; --ink: #E7ECF1; --ink-2: #C8D0D9; --muted: #97A3B0; --faint: #6C7885;
+    --primary-bg: #E7ECF1; --primary-fg: #111820; --sel: #FFC933; --sel-soft: rgba(255, 201, 51, 0.16);
+    --danger: #F0776D; --danger-soft: rgba(240, 119, 109, 0.14); --ok: #3CC48E; --ok-soft: rgba(60, 196, 142, 0.14);
+    --m-lan: #4B95F2; --m-wifi: #A57CF0; --m-fiber: #F28B2C; --m-other: #8C98A6;
+    --node-bg: #1D252E; --node-border: #34404D; --node-ink: #E7ECF1; --node-sub: #97A3B0;
+    --infra-bg: #E3E9EF; --infra-ink: #111820; --infra-sub: #4F5B68;
+    --g-client: #1B3250; --g-client-ink: #8CB8F5; --room-bg: #161D24; --room-border: #2E3945; --tape: #F1DA78; --note: #3A3420; --note-line: #6B5D2A;
+    --port: #05080B; --port-cell: #2A3440; --panel-dark: #2A3440; --panel-light: #D9DFE5; --pcell-d: #3A4552;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 76px; }
+@media (max-width: 600px) { html { scroll-padding-top: 12px; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 15.5px/1.85 var(--font); }
+a { color: var(--m-lan); text-underline-offset: 3px; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--sel); outline-offset: 2px; border-radius: 6px; }
+.ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -4px; }
+.ic.s16 { width: 16px; height: 16px; vertical-align: -3px; }
+.ic.s24 { width: 24px; height: 24px; }
+
+/* ---------- 枠組み ---------- */
+.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 10px max(16px, env(safe-area-inset-left)); background: color-mix(in srgb, var(--chrome) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.brand { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--primary-bg); color: var(--primary-fg); flex: none; }
+.brand .ic { width: 22px; height: 22px; vertical-align: 0; }
+.top h1 { font-size: 16px; line-height: 1.3; margin: 0; font-weight: 800; }
+.top h1 small { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.top .open { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; background: var(--primary-bg); color: var(--primary-fg); font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; padding: 0 16px 80px; }
+@media (min-width: 1100px) { .layout { grid-template-columns: 240px minmax(0, 1fr); gap: 40px; } }
+main { min-width: 0; max-width: 800px; }
+nav.toc { font-size: 14px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+nav.toc li { counter-increment: toc; }
+nav.toc a { display: flex; gap: 8px; padding: 5px 10px; border-radius: 8px; color: var(--ink-2); text-decoration: none; line-height: 1.5; }
+nav.toc a::before { content: counter(toc, decimal-leading-zero); font: 700 11.5px/1.9 var(--mono); color: var(--faint); }
+nav.toc a:hover { background: var(--surface); color: var(--ink); }
+.toc-title { font-size: 12px; font-weight: 800; color: var(--muted); padding: 0 10px 6px; letter-spacing: .04em; }
+.toc-side { display: none; }
+@media (min-width: 1100px) {
+  .toc-side { display: block; position: sticky; top: 70px; align-self: start; max-height: calc(100vh - 90px); overflow: auto; padding: 22px 0; }
+  .toc-top { display: none; }
+}
+.toc-top { margin: 16px 0 0; }
+.toc-top details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 8px; }
+.toc-top summary { cursor: pointer; padding: 8px 6px; font-weight: 800; list-style: none; display: flex; align-items: center; gap: 8px; }
+.toc-top summary::-webkit-details-marker { display: none; }
+.toc-top summary::after { content: "＋"; margin-left: auto; color: var(--muted); }
+.toc-top details[open] summary::after { content: "－"; }
+.toc-top ol { padding: 0 0 8px; columns: 2 180px; column-gap: 8px; }
+/* スマホ：上の帯は小さく、スクロールについてこない */
+@media (max-width: 600px) {
+  .top { position: static; padding: 10px 16px; }
+  .top h1 { font-size: 15px; }
+  .top h1 small { font-size: 11px; }
+  .top .open { padding: 7px 10px; font-size: 13px; }
+  .top .open .lbl-long { display: none; }
+}
+@media (min-width: 601px) { .top .open .lbl-short { display: none; } }
+/* ---------- 本文 ---------- */
+.hero { padding: 34px 0 6px; }
+.hero h2 { font-size: clamp(24px, 5vw, 32px); line-height: 1.35; margin: 0 0 12px; letter-spacing: -0.01em; }
+.hero p.lead { font-size: 16.5px; color: var(--ink-2); margin: 0 0 18px; }
+.promise { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.promise li { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; font-weight: 700; }
+.promise .ic { color: var(--ok); }
+section.sec { padding-top: 34px; }
+section.sec > h2 { display: flex; align-items: center; gap: 12px; font-size: 22px; line-height: 1.4; margin: 0 0 10px; }
+section.sec > h2 .no { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--primary-bg); color: var(--primary-fg); font: 800 14px/1 var(--mono); }
+h3 { font-size: 17px; margin: 26px 0 6px; line-height: 1.5; }
+h3 .ic { color: var(--muted); margin-right: 4px; }
+p { margin: 0 0 12px; }
+ul, ol { padding-left: 1.4em; margin: 0 0 12px; }
+li { margin: 2px 0; }
+.ui { display: inline-block; padding: 0 7px; border-radius: 6px; background: var(--surface-3); color: var(--ink); font-weight: 700; font-size: .92em; line-height: 1.6; white-space: nowrap; }
+.ui .ic { vertical-align: -3px; width: 15px; height: 15px; margin-right: 2px; }
+kbd { display: inline-block; min-width: 1.7em; padding: 0 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 6px; background: var(--surface); font: 700 12.5px/1.65 var(--mono); text-align: center; color: var(--ink); white-space: nowrap; }
+.mono { font-family: var(--mono); }
+.note { color: var(--muted); font-size: 13.5px; }
+.box { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; margin: 14px 0; font-size: 14.5px; line-height: 1.75; }
+.box > .ic { margin-top: 4px; }
+.box p:last-child { margin: 0; }
+.tip { background: var(--sel-soft); }
+.tip > .ic { color: #9A6B00; }
+@media (prefers-color-scheme: dark) { .tip > .ic { color: var(--sel); } }
+.warn { background: var(--danger-soft); }
+.warn > .ic { color: var(--danger); }
+.good { background: var(--ok-soft); }
+.good > .ic { color: var(--ok); }
+figure { margin: 18px 0; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+figure > svg, .scroll > svg { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 600px) {
+  figure { padding: 12px; border-radius: 14px; }
+  figure.wide .scroll > svg { min-width: 540px; }
+}
+/* 図の番号と、その説明 */
+ol.callouts { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 16px; font-size: 14px; line-height: 1.6; }
+ol.callouts li { display: flex; gap: 8px; margin: 0; }
+ol.callouts li > b:first-child { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--sel); color: #17202B; font: 800 12px/1 var(--mono); margin-top: 1px; }
+/* 手順 */
+ol.steps { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; counter-reset: st; }
+ol.steps > li { counter-increment: st; position: relative; padding: 14px 16px 14px 58px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin: 0; }
+ol.steps > li::before { content: counter(st); position: absolute; left: 14px; top: 14px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--sel); color: #17202B; font: 800 14px/1 var(--mono); }
+ol.steps > li b.h { display: block; font-size: 16px; margin-bottom: 2px; }
+ol.steps > li p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+/* 表 */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.6; margin: 10px 0 16px; background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+.tbl th, .tbl td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+.tbl thead th { border-top: 0; background: var(--surface-2); font-size: 12.5px; color: var(--muted); font-weight: 800; }
+.tbl td:first-child { white-space: nowrap; font-weight: 700; }
+.tbl.keys td:first-child { white-space: normal; }
+.tbl-wrap { overflow-x: auto; }
+/* カードの並び */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 14px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+.card h4 { margin: 0 0 4px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.card h4 .ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-3); flex: none; }
+.card h4 .ico .ic { vertical-align: 0; }
+.card h4 kbd { margin-left: auto; }
+.card p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+/* よくある質問 */
+details.qa { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin: 8px 0; }
+details.qa summary { cursor: pointer; padding: 12px 44px 12px 16px; font-weight: 700; position: relative; list-style: none; line-height: 1.6; }
+details.qa summary::-webkit-details-marker { display: none; }
+details.qa summary::before { content: "Q"; font: 800 13px/1 var(--mono); color: var(--m-lan); margin-right: 8px; }
+details.qa summary::after { content: "＋"; position: absolute; right: 16px; top: 12px; color: var(--muted); }
+details.qa[open] summary::after { content: "－"; }
+details.qa > div { padding: 0 16px 12px; font-size: 14.5px; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+
+/* ---------- 図（SVG）の部品 ---------- */
+.dg text { font-family: var(--font); fill: var(--ink); }
+.dg .t11 { font-size: 11px; } .dg .t12 { font-size: 12px; } .dg .t13 { font-size: 13px; } .dg .t14 { font-size: 14px; } .dg .t16 { font-size: 16px; }
+.dg .b { font-weight: 700; } .dg .xb { font-weight: 800; }
+.dg .mu { fill: var(--muted); } .dg .fa { fill: var(--faint); } .dg .mo { font-family: var(--mono); }
+.dg .mid { text-anchor: middle; } .dg .end { text-anchor: end; }
+.dg .bg { fill: var(--canvas); } .dg .dots { fill: url(#dotgrid); }
+.dg .chrome { fill: var(--chrome); } .dg .surf { fill: var(--surface); stroke: var(--line); } .dg .surf2 { fill: var(--surface-2); } .dg .surf3 { fill: var(--surface-3); }
+.dg .ln { stroke: var(--line); fill: none; } .dg .lns { stroke: var(--line-strong); fill: none; }
+.dg .dark { fill: var(--primary-bg); } .dg .darkt { fill: var(--primary-fg); }
+.dg .gi { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dg .ci { color: var(--ink); } .dg .cm { color: var(--muted); } .dg .cinv { color: var(--infra-ink); } .dg .cpr { color: var(--primary-fg); }
+.dg .n-inf { fill: var(--infra-bg); } .dg .n-inf-t { fill: var(--infra-ink); } .dg .n-inf-s { fill: var(--infra-sub); }
+.dg .n-end { fill: var(--node-bg); stroke: var(--node-border); } .dg .n-end-s { fill: var(--node-sub); }
+.dg .n-ico { fill: rgba(127, 140, 155, 0.18); }
+.dg .sel { stroke: var(--sel); stroke-width: 3; fill: none; }
+.dg .lan { stroke: var(--m-lan); stroke-width: 3; fill: none; }
+.dg .wifi { stroke: var(--m-wifi); stroke-width: 3; fill: none; stroke-dasharray: 0.1 6.5; stroke-linecap: round; }
+.dg .fib { stroke: var(--m-fiber); stroke-width: 5; fill: none; } .dg .fib-core { stroke: var(--surface); stroke-width: 1.4; fill: none; }
+.dg .oth { stroke: var(--m-other); stroke-width: 2.4; fill: none; }
+.dg .plan { fill: none; stroke: var(--node-border); stroke-dasharray: 4 3; stroke-width: 1.5; }
+.dg .drag { stroke: var(--m-lan); stroke-width: 2.5; fill: none; stroke-dasharray: 6 5; }
+.dg .call circle { fill: var(--sel); stroke: var(--surface); stroke-width: 2; }
+.dg .call text { fill: #17202B; font: 800 13px/1 var(--mono); text-anchor: middle; dominant-baseline: central; }
+.dg .lead { stroke: var(--sel); stroke-width: 1.5; fill: none; }
+.dg .lanf { fill: var(--m-lan); } .dg .wifif { fill: var(--m-wifi); } .dg .fibf { fill: var(--m-fiber); } .dg .othf { fill: var(--m-other); }
+.dg .okf { fill: var(--ok); } .dg .dangerf { fill: var(--danger); } .dg .self { fill: var(--sel); } .dg .selsoft { fill: var(--sel-soft); }
+.dg .stripe { fill: url(#stripe); }
+.dg .room { fill: var(--room-bg); stroke: var(--room-border); }
+.dg .tape { fill: var(--tape); } .dg .tapet { fill: #17202B; }
+.dg .frame { fill: color-mix(in srgb, var(--m-lan) 9%, transparent); stroke: color-mix(in srgb, var(--m-lan) 45%, transparent); stroke-dasharray: 5 4; }
+.dg .framelab { fill: var(--m-lan); } .dg .framelabt { fill: #fff; }
+.dg .notebox { fill: var(--note); stroke: var(--note-line); }
+.dg .pd { fill: var(--panel-dark); stroke: var(--line-strong); } .dg .pl { fill: var(--panel-light); stroke: var(--line-strong); }
+.dg .port { fill: var(--port); } .dg .pcell { fill: var(--port-cell); stroke: var(--line-strong); stroke-width: .8; }
+.dg .pcell-d { fill: var(--pcell-d); }
+.dg .led { fill: #2ECC71; }
+.dg .cab-b { stroke: #2F7BEA; stroke-width: 4.5; fill: none; stroke-linecap: round; }
+.dg .cab-y { stroke: #E9B000; stroke-width: 4.5; fill: none; stroke-linecap: round; }
+.dg .cab-g { stroke: #2E9E62; stroke-width: 4.5; fill: none; stroke-linecap: round; }
+.dg .cab-k { stroke: #6B7681; stroke-width: 4.5; fill: none; stroke-linecap: round; }
+.dg .plug-b { fill: #2F7BEA; } .dg .plug-y { fill: #E9B000; } .dg .plug-g { fill: #2E9E62; } .dg .plug-k { fill: #6B7681; }
+.dg .hand { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
+.dg .wall { fill: var(--surface-3); }
+.dg .bar-dh { fill: url(#stripe); stroke: var(--line-strong); }
+.dg .cross { stroke: var(--danger); stroke-width: 3; stroke-linecap: round; fill: none; }
+
+/* ---------- 1.2.3 で追加 ---------- */
+.skip { position: absolute; left: -999px; top: 8px; z-index: 20; padding: 8px 14px; border-radius: 10px; background: var(--primary-bg); color: var(--primary-fg); font-weight: 700; }
+.skip:focus { left: 16px; }
+.nw { white-space: nowrap; }
+@media (max-width: 600px) { .top h1 { font-size: 14px; } .top .brand { width: 30px; height: 30px; } }
+/* 目次：見出しのまとまりと番号 */
+nav.toc a::before { content: none; }
+nav.toc a .n { flex: none; min-width: 1.9em; font: 700 11.5px/1.9 var(--mono); color: var(--muted); }
+.toc-group { font-size: 11.5px; font-weight: 800; color: var(--muted); letter-spacing: .04em; padding: 12px 10px 2px; }
+.toc-side .toc-group:first-child { padding-top: 0; }
+.toc-top ol { columns: 2 200px; }
+.toc-top .toc-group { padding-left: 6px; }
+.find-tip { font-size: 12.5px; color: var(--muted); margin: 8px 4px 0; }
+@media (min-width: 1100px) { .find-tip { display: none; } }
+/* やりたいことから探す */
+.goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin: 10px 0 0; }
+.goals a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; line-height: 1.5; }
+.goals a:hover { border-color: var(--line-strong); }
+.goals a b { font-size: 14.5px; }
+.goals a span { font-size: 12.5px; color: var(--m-lan); font-weight: 700; }
+.goals a span::after { content: " →"; }
+/* スマホの画面の図 */
+.phone-row { display: grid; grid-template-columns: minmax(170px, 240px) minmax(0, 1fr); gap: 16px; align-items: center; margin: 14px 0; }
+.phone-row figure.narrow { margin: 0; }
+@media (max-width: 520px) { .phone-row { grid-template-columns: 1fr; } .phone-row figure.narrow { max-width: 260px; margin: 0 auto; } }
+ol.callouts.one { grid-template-columns: 1fr; margin: 0; }
+/* 用語集 */
+dl.glossary { margin: 10px 0; display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 14.5px; line-height: 1.7; }
+dl.glossary dt { font-weight: 800; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface-2); }
+dl.glossary dd { margin: 0; padding: 10px 14px; border-top: 1px solid var(--line); }
+dl.glossary dt:first-of-type, dl.glossary dt:first-of-type + dd { border-top: 0; }
+@media (max-width: 600px) { dl.glossary { grid-template-columns: 1fr; } dl.glossary dd { border-top: 0; padding-top: 0; background: var(--surface); } dl.glossary dt { background: var(--surface); padding-bottom: 2px; } }
+/* 折りたたみ（詳しい人向け・キーボード） */
+details.more { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin: 12px 0; }
+details.more > summary { cursor: pointer; padding: 10px 16px; font-weight: 800; list-style: none; position: relative; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::after { content: "＋"; position: absolute; right: 16px; color: var(--muted); }
+details.more[open] > summary::after { content: "－"; }
+details.more > div { padding: 0 16px 8px; }
+/* 横にスクロールする図：スマホでは上に案内 */
+@media (max-width: 600px) {
+  figure.wide::before { content: "← 図は横にスクロールできます →"; display: block; text-align: center; font-size: 11.5px; font-weight: 700; color: var(--muted); margin: -2px 0 6px; }
+  figure.wide .scroll { -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+}
+/* 目次へ戻る（スマホ・タブレット） */
+.totop { position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 6; padding: 8px 14px; border-radius: 999px; background: var(--primary-bg); color: var(--primary-fg); font-weight: 800; font-size: 13px; text-decoration: none; box-shadow: var(--shadow); }
+@media (min-width: 1100px) { .totop { display: none; } }
+/* 印刷 */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  :root { color-scheme: light;
+  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "BIZ UDGothic", monospace;
+  --canvas: #EDF0F3; --canvas-dot: #C2CAD3; --chrome: #FFFFFF; --surface: #FFFFFF; --surface-2: #F4F6F8; --surface-3: #E8ECF0;
+  --line: #DCE1E7; --line-strong: #C3CBD4; --ink: #17202B; --ink-2: #364250; --muted: #5D6876; --faint: #8A95A2;
+  --primary-bg: #17202B; --primary-fg: #FFFFFF; --sel: #FFC21A; --sel-ink: #17202B; --sel-soft: #FFF2C2;
+  --danger: #C23A30; --danger-soft: #FCEBE9; --ok: #138A5E; --ok-soft: #DDF1E6; --poe: #E9B200;
+  --m-lan: #1D6FD8; --m-wifi: #8A4CDB; --m-fiber: #E8700A; --m-other: #77838F;
+  --node-bg: #FFFFFF; --node-border: #CDD4DC; --node-ink: #17202B; --node-sub: #5D6876;
+  --infra-bg: #17202B; --infra-ink: #FFFFFF; --infra-sub: #A9B4C1;
+  --g-client: #E1EBFA; --g-client-ink: #1C5AAE; --room-bg: #FFFFFF; --room-border: #D2D9E0; --tape: #FFEE9E; --note: #FBEFC4; --note-line: #E9D27A;
+  --port: #0C1116; --port-cell: #F4F6F8; --panel-dark: #1E262F; --panel-light: #F7F8FA; --pcell-d: #2B343E;
+  --shadow: 0 1px 2px rgba(23, 32, 43, 0.06), 0 6px 20px rgba(23, 32, 43, 0.06);
+}
+  body { background: #fff; font-size: 10.5pt; line-height: 1.7; }
+  .top { position: static; border: 0; background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .top .open, nav.toc, .totop, .skip, .goals { display: none !important; }
+  .layout { display: block; padding: 0; }
+  main { max-width: none; }
+  details > *, details.qa > div, details.more > div { display: block !important; }
+  details::details-content { content-visibility: visible; display: contents; }
+  details.qa summary::after, details.more > summary::after { content: none; }
+  figure, ol.steps > li, .card, tr, details.qa, .box, dl.glossary dt, dl.glossary dd { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  section.sec { padding-top: 18px; }
+  .scroll { overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  figure.wide::before { content: none; }
+  figure { box-shadow: none; }
+}
+.dg .drag { stroke: var(--ink); }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+<defs>
+<!-- ===== brand ===== -->
+<symbol id="i-brand" viewBox="0 0 24 24"><path d="M12 4.2 4.6 10.4M12 4.2l7.4 6.2M4.6 10.4v8.9M19.4 10.4v8.9M4.6 19.3h14.8M12 4.2v7.2l-3.6 7.9M12 11.4l3.6 7.9" stroke-width="1.7"/><circle cx="12" cy="4.2" r="2.1" fill="#FFC21A" stroke="none"/><circle cx="4.6" cy="10.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.4" cy="10.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="11.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="4.6" cy="19.3" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.4" cy="19.3" r="1.7" fill="currentColor" stroke="none"/></symbol>
+
+<!-- ===== device types ===== -->
+<symbol id="i-internet" viewBox="0 0 24 24"><path d="M7.4 18.5h9.4a3.8 3.8 0 0 0 .4-7.6 5.3 5.3 0 0 0-10.2-1 4.3 4.3 0 0 0 .4 8.6z"/></symbol>
+<symbol id="i-onu" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="12.5" height="11" rx="2"/><circle cx="7" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9.8" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12.6" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M16 12h2.2a2 2 0 0 1 2 2v5.5"/></symbol>
+<symbol id="i-router" viewBox="0 0 24 24"><rect x="3" y="7.5" width="18" height="9" rx="2.5"/><path d="M7.2 12h9.6M14.4 9.6 16.8 12l-2.4 2.4M9.6 9.6 7.2 12l2.4 2.4"/></symbol>
+<symbol id="i-wifi-router" viewBox="0 0 24 24"><rect x="3" y="12.5" width="18" height="7" rx="2"/><path d="M6.5 12.5V9M17.5 12.5V9M9.3 7.2a3.9 3.9 0 0 1 5.4 0M7.4 5a6.6 6.6 0 0 1 9.2 0"/><circle cx="7" cy="16" r="0.9" fill="currentColor" stroke="none"/><circle cx="9.8" cy="16" r="0.9" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-ap" viewBox="0 0 24 24"><path d="M4.5 15.8c0 1.7 3.4 3.1 7.5 3.1s7.5-1.4 7.5-3.1-3.4-3.1-7.5-3.1-7.5 1.4-7.5 3.1z"/><path d="M9.2 8.7a4 4 0 0 1 5.6 0M7 6.3a7.1 7.1 0 0 1 10 0"/><circle cx="12" cy="11" r="1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-outlet" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.2"/><path d="M8.5 7.5h7v4h-7zM10.6 7.5v-1h2.8v1M8.5 14h7v4h-7zM10.6 14v-1h2.8v1"/></symbol>
+<symbol id="i-switch" viewBox="0 0 24 24"><rect x="2.5" y="7.5" width="19" height="9" rx="2"/><path d="M6 11.3v1.7M9 11.3v1.7M12 11.3v1.7M15 11.3v1.7M18 11.3v1.7"/></symbol>
+<symbol id="i-firewall" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.8"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 5v4.7M6 9.7v4.6M12 9.7v4.6M18 9.7v4.6M9 14.3V19M15 14.3V19"/></symbol>
+<symbol id="i-pc" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.8"/><path d="M8.5 20h7M12 16v4"/></symbol>
+<symbol id="i-laptop" viewBox="0 0 24 24"><path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5V15H5z"/><path d="M2.5 15h19l-.9 2.9a1.5 1.5 0 0 1-1.4 1.1H4.8a1.5 1.5 0 0 1-1.4-1.1z"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.8" width="10" height="18.4" rx="2.3"/><path d="M10.8 17.9h2.4"/></symbol>
+<symbol id="i-tablet" viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="2.3"/><path d="M11 17.9h2"/></symbol>
+<symbol id="i-tv" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="13" rx="1.8"/><path d="M6.5 17.5 5.5 20M17.5 17.5l1 2.5"/></symbol>
+<symbol id="i-media" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.2"/><path d="M10.4 9.5v5l4.2-2.5z" fill="currentColor"/></symbol>
+<symbol id="i-game" viewBox="0 0 24 24"><path d="M7.3 7.5h9.4a4 4 0 0 1 3.9 3.2l.9 4.3a2.5 2.5 0 0 1-4.3 2.2l-1.6-1.9H8.4l-1.6 1.9A2.5 2.5 0 0 1 2.5 15l.9-4.3a4 4 0 0 1 3.9-3.2z"/><path d="M7.6 10.3v3M6.1 11.8h3"/><circle cx="15.7" cy="10.9" r="0.95" fill="currentColor" stroke="none"/><circle cx="17.5" cy="12.7" r="0.95" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-speaker" viewBox="0 0 24 24"><path d="M7 6.5C7 5.1 9.2 4 12 4s5 1.1 5 2.5v11c0 1.4-2.2 2.5-5 2.5s-5-1.1-5-2.5z"/><path d="M7 6.5C7 7.9 9.2 9 12 9s5-1.1 5-2.5"/><circle cx="12" cy="14.2" r="2.1"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.6 8.2 15.8 5.6a1.2 1.2 0 0 1 1.4.9l1.1 5.3a1.2 1.2 0 0 1-.9 1.4L5.2 15.8a1.2 1.2 0 0 1-1.4-.9L2.7 9.6a1.2 1.2 0 0 1 .9-1.4z"/><path d="M18.1 9.2l3-.6M10 14.2l1 5M7.4 19.6h7"/><circle cx="7" cy="10.9" r="1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-iot" viewBox="0 0 24 24"><path d="M9 3.5v4M15 3.5v4"/><path d="M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.5v4"/></symbol>
+<symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/></symbol>
+<symbol id="i-nas" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.2"/><path d="M8.5 7h7M8.5 10.5h7"/><circle cx="12" cy="16" r="1.9"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.6"/><rect x="3" y="13" width="18" height="7" rx="1.6"/><path d="M11 7.5h6M11 16.5h6"/><circle cx="7" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="7" cy="16.5" r="1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-other" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="8.3" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.7" cy="12" r="1.1" fill="currentColor" stroke="none"/></symbol>
+
+<!-- ===== UI ===== -->
+<symbol id="i-map" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2.4"/><circle cx="18.5" cy="5.8" r="2.4"/><circle cx="18.5" cy="18.2" r="2.4"/><path d="M7.9 12h3.4V7.4a1.6 1.6 0 0 1 1.6-1.6h3.2M11.3 12v4.6a1.6 1.6 0 0 0 1.6 1.6h3.2"/></symbol>
+<symbol id="i-devices" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="13" height="10" rx="1.6"/><path d="M6 18.5h6M9 14.5v4"/><rect x="16.5" y="8" width="5" height="11.5" rx="1.3"/></symbol>
+<symbol id="i-rooms" viewBox="0 0 24 24"><path d="M3.5 10.8 12 4l8.5 6.8"/><path d="M5.5 9.3V20h13V9.3"/><path d="M12 20v-5.5h6.5"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4.5 9.5 9 5"/><path d="M4.5 9.5h10a5 5 0 0 1 0 10H11"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l4.5-4.5L15 5"/><path d="M19.5 9.5h-10a5 5 0 0 0 0 10H13"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-layout" viewBox="0 0 24 24"><rect x="2.8" y="9.5" width="5" height="5" rx="1.3"/><rect x="16.2" y="3.5" width="5" height="5" rx="1.3"/><rect x="16.2" y="15.5" width="5" height="5" rx="1.3"/><path d="M7.8 12h4.2M12 6h4.2M12 18h4.2M12 6v12"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l.8 12.2A1.9 1.9 0 0 0 9.2 21h5.6a1.9 1.9 0 0 0 1.9-1.8L17.5 7"/><path d="M10 11v6M14 11v6"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4"/><path d="M8.5 11H7a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 7 20h10a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 17 11h-1.5"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-9 8.5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.9h.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.3 2.8 17.4A2 2 0 0 0 4.5 20.4h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17.2h.01"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></symbol>
+<symbol id="i-paste" viewBox="0 0 24 24"><rect x="5.5" y="4.5" width="13" height="16" rx="2.2"/><path d="M9 4.5v-.7a.8.8 0 0 1 .8-.8h4.4a.8.8 0 0 1 .8.8v.7M9 10h6M9 13.5h6M9 17h3.5"/></symbol>
+<symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></symbol>
+<symbol id="i-install" viewBox="0 0 24 24"><rect x="6.5" y="2.8" width="11" height="18.4" rx="2.3"/><path d="M12 7v7M9.2 11.5 12 14.3l2.8-2.8"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M4.5 9.5a11 11 0 0 1 15 0M7.3 12.6a7 7 0 0 1 9.4 0M10 15.6a3 3 0 0 1 4 0"/><circle cx="12" cy="18.6" r="1.1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-cable" viewBox="0 0 24 24"><path d="M8 3.5h8v5l1.5 1.5v6.5h-11V10L8 8.5z"/><path d="M10 3.5V6M12 3.5V6M14 3.5V6M12 16.5V21"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18.2l-1.8-5.6-5.7-1.8L10.2 9z"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 4 8.5 4.5L12 13 3.5 8.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5"/></symbol>
+<symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+<symbol id="i-ipgrid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" fill="currentColor"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" fill="currentColor"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8 10.5V8a4 4 0 0 1 7.6-1.8"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.3 3.1M6.5 7.2C3.9 8.9 2.5 12 2.5 12s3.5 6.5 9.5 6.5a9.5 9.5 0 0 0 4.4-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M4 4l16 16"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.3"/><circle cx="18" cy="6" r="2.3"/><path d="M8.3 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.7"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 3.5h10a1 1 0 0 1 1 1V20l-6-4-6 4V4.5a1 1 0 0 1 1-1Z"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4v14"/><path d="m3.5 14.5 3.5 3.5 3.5-3.5"/><path d="M17 20V6"/><path d="M13.5 9.5 17 6l3.5 3.5"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.3-1.6-1.3-2.9 0-1 .8-1.7 1.8-1.7h2.2a4 4 0 0 0 4-4C20.5 6.6 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="14" rx="2.5" stroke-dasharray="3 2.2"/><rect x="5.5" y="3" width="7" height="4" rx="2" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h14a1 1 0 0 1 1 1v9.5L14.5 20H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14.5 20v-4.5a1 1 0 0 1 1-1H20M8 8.5h8M8 12h5"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4M5.5 4.5h11l-2.2 4 2.2 4h-11"/></symbol>
+<symbol id="i-chev-up" viewBox="0 0 24 24"><path d="m6 14.5 6-6 6 6"/></symbol>
+<symbol id="i-al-left" viewBox="0 0 24 24"><path d="M4 3.5v17"/><rect x="7" y="6" width="12" height="4" rx="1.2"/><rect x="7" y="14" width="7" height="4" rx="1.2"/></symbol>
+<symbol id="i-al-hcenter" viewBox="0 0 24 24"><path d="M12 3.5v17"/><rect x="5" y="6" width="14" height="4" rx="1.2"/><rect x="8" y="14" width="8" height="4" rx="1.2"/></symbol>
+<symbol id="i-al-right" viewBox="0 0 24 24"><path d="M20 3.5v17"/><rect x="5" y="6" width="12" height="4" rx="1.2"/><rect x="10" y="14" width="7" height="4" rx="1.2"/></symbol>
+<symbol id="i-al-top" viewBox="0 0 24 24"><path d="M3.5 4h17"/><rect x="6" y="7" width="4" height="12" rx="1.2"/><rect x="14" y="7" width="4" height="7" rx="1.2"/></symbol>
+<symbol id="i-al-vmiddle" viewBox="0 0 24 24"><path d="M3.5 12h17"/><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="8" width="4" height="8" rx="1.2"/></symbol>
+<symbol id="i-al-bottom" viewBox="0 0 24 24"><path d="M3.5 20h17"/><rect x="6" y="5" width="4" height="12" rx="1.2"/><rect x="14" y="10" width="4" height="7" rx="1.2"/></symbol>
+<symbol id="i-al-hdist" viewBox="0 0 24 24"><path d="M3.5 4v16M20.5 4v16"/><rect x="9" y="7" width="6" height="10" rx="1.2"/></symbol>
+<symbol id="i-al-vdist" viewBox="0 0 24 24"><path d="M4 3.5h16M4 20.5h16"/><rect x="7" y="9" width="10" height="6" rx="1.2"/></symbol>
+<symbol id="i-dot-black" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:#2A2F35;stroke:none"/></symbol>
+<symbol id="i-dot-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.4" style="fill:#EEF1F4;stroke:#8E979F;stroke-width:1.2"/></symbol>
+<symbol id="i-dot-gray" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-gray);stroke:none"/></symbol>
+<symbol id="i-dot-blue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-blue);stroke:none"/></symbol>
+<symbol id="i-dot-green" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-green);stroke:none"/></symbol>
+<symbol id="i-dot-yellow" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-yellow);stroke:none"/></symbol>
+<symbol id="i-dot-orange" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-orange);stroke:none"/></symbol>
+<symbol id="i-dot-red" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-red);stroke:none"/></symbol>
+<symbol id="i-dot-purple" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-purple);stroke:none"/></symbol>
+<symbol id="i-dot-pink" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" style="fill:var(--cl-pink);stroke:none"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.8 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z"/></symbol>
+<symbol id="i-parts" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><path d="M16.75 14v5.5M14 16.75h5.5"/></symbol>
+<symbol id="i-minimap" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><rect x="11" y="9" width="6.5" height="5" rx="1" stroke-dasharray="2 1.5"/><path d="M6.5 15.5h3M6.5 12.5h2"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M7 8V4h10v4"/><rect x="3.5" y="8" width="17" height="8" rx="2"/><path d="M7 13h10v7H7z"/><path d="M16.5 10.8h.01"/></symbol>
+<symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9.3 10h.01M12.6 10h.01M15.9 10h.01M6 13.5h.01M18 10h.01M8.5 14.5h7"/></symbol>
+<symbol id="i-vlan" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="5" rx="1.6"/><path d="M7 9v3.5M12 9v3.5M17 9v3.5"/><rect x="3" y="14" width="5" height="5.5" rx="1.4"/><rect x="9.5" y="14" width="5" height="5.5" rx="1.4" stroke-dasharray="2 1.4"/><rect x="16" y="14" width="5" height="5.5" rx="1.4"/></symbol>
+<symbol id="i-ports" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="11" rx="2.2"/><path d="M5.5 10.5h3v4h-3zM10.5 10.5h3v4h-3zM15.5 10.5h3v4h-3z"/><path d="M6.4 10.5V9.6h1.2v.9M11.4 10.5V9.6h1.2v.9M16.4 10.5V9.6h1.2v.9"/></symbol>
+<symbol id="i-house-net" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.8l8.5 6.7"/><path d="M5.5 9v11h13V9"/><circle cx="9" cy="15" r="1.4"/><circle cx="15" cy="15" r="1.4"/><path d="M10.4 15h3.2"/></symbol>
+<!-- ===== groups ===== -->
+<symbol id="i-group" viewBox="0 0 24 24"><path d="M4 7.2V4.5a1 1 0 0 1 1-1h2.7M16.3 3.5H19a1 1 0 0 1 1 1v2.7M20 16.8v2.7a1 1 0 0 1-1 1h-2.7M7.7 20.5H5a1 1 0 0 1-1-1v-2.7"/><circle cx="9" cy="9.5" r="2"/><circle cx="15" cy="9.5" r="2"/><path d="M5.8 16.5a3.4 3.4 0 0 1 6.4 0M11.8 16.5a3.4 3.4 0 0 1 6.4 0"/></symbol>
+<symbol id="i-g-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V5a1.5 1.5 0 0 1 1.5-1.5h7.2l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-7 7a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></symbol>
+<symbol id="i-g-family" viewBox="0 0 24 24"><circle cx="8" cy="7" r="2.6"/><circle cx="16.5" cy="8" r="2.1"/><circle cx="12.4" cy="13.4" r="1.7"/><path d="M3.5 19.5v-1.8A4.2 4.2 0 0 1 7.7 13.5h.6M20.5 19.5v-1.6a3.6 3.6 0 0 0-3.6-3.6h-.4M9.4 20.5a3 3 0 0 1 6 0"/></symbol>
+<symbol id="i-g-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5a7 7 0 0 1 14 0"/></symbol>
+<symbol id="i-g-child" viewBox="0 0 24 24"><circle cx="12" cy="10" r="5.5"/><path d="M9.7 9.4h.01M14.3 9.4h.01" stroke-width="2.4"/><path d="M10 12.4a2.6 2.6 0 0 0 4 0M12 4.5c0-1 .8-1.6 1.7-1.3"/><path d="M8 20.5a4.4 4.4 0 0 1 8 0"/></symbol>
+<symbol id="i-g-work" viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V5.6A1.1 1.1 0 0 1 10.1 4.5h3.8A1.1 1.1 0 0 1 15 5.6v1.9M3.5 12.5h17M11 12.5v1.6h2v-1.6"/></symbol>
+<symbol id="i-g-home" viewBox="0 0 24 24"><path d="M4 11 12 4.5 20 11v8.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M12.6 10.6 10.4 14h3.2l-2.2 3.4"/></symbol>
+<symbol id="i-g-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.6c0 4.3-3 7.6-7 8.9-4-1.3-7-4.6-7-8.9V6z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></symbol>
+<symbol id="i-g-guest" viewBox="0 0 24 24"><path d="M5 20.5V4.8a1.3 1.3 0 0 1 1.7-1.2l7.2 2.4a1.3 1.3 0 0 1 .9 1.2v13.3M3.5 20.5h17M14.8 6.5H18a1 1 0 0 1 1 1v13"/><circle cx="11.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-g-game" viewBox="0 0 24 24"><path d="M7.2 8h9.6a4.2 4.2 0 0 1 4.1 3.4l.8 4.3a2.4 2.4 0 0 1-4.2 2L16 16H8l-1.5 1.7a2.4 2.4 0 0 1-4.2-2l.8-4.3A4.2 4.2 0 0 1 7.2 8z"/><path d="M8 10.6v3M6.5 12.1h3"/><circle cx="15.6" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="17.4" cy="13.2" r=".9" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-g-heart" viewBox="0 0 24 24"><path d="M12 19.8s-7.5-4.4-7.5-10a4.1 4.1 0 0 1 7.5-2.4 4.1 4.1 0 0 1 7.5 2.4c0 5.6-7.5 10-7.5 10z"/></symbol>
+<symbol id="i-g-media" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="11.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/><path d="m10.4 8.4 4 2.4-4 2.4z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-fold" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2.5"/><path d="M6.5 6h11M9 3.2h6"/><path d="m9.5 13.8 2.5 2.4 2.5-2.4"/></symbol>
+<symbol id="i-unfold" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="5" rx="1.8"/><rect x="4" y="10" width="16" height="5" rx="1.8"/><rect x="4" y="16.5" width="16" height="5" rx="1.8" stroke-dasharray="2.4 1.8"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><path d="m5.3 7.1 1.4 1.4 2.4-2.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><path d="M14 7h6.5M14 17h6.5"/></symbol>
+</defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="dotgrid" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" style="fill:var(--canvas-dot)"/></pattern>
+    <pattern id="stripe" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--surface)"/><rect width="3" height="6" style="fill:color-mix(in srgb, var(--m-lan) 30%, var(--surface))"/></pattern>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" style="fill:var(--muted)"/></marker>
+    <marker id="arrSel" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" style="fill:var(--m-lan)"/></marker>
+  </defs>
+</svg>
+
+<a class="skip" href="#main">本文へ</a>
+<header class="top" id="top">
+  <span class="brand" aria-hidden="true"><svg class="ic"><use href="#i-brand"/></svg></span>
+  <h1>HomeNet Atlas 使い方ガイド<small>版 1.2.4</small></h1>
+  <a class="open" href="./"><svg class="ic s16" aria-hidden="true"><use href="#i-map"/></svg><span class="lbl-long">アプリを開く</span><span class="lbl-short">アプリへ</span></a>
+</header>
+
+<div class="layout">
+<nav class="toc toc-side" aria-label="目次">
+  <div class="toc-group">はじめに</div>
+  <ol>
+    <li><a href="#about"><span class="n">・</span>このアプリでできること</a></li>
+    <li><a href="#patterns"><span class="n">01</span>よくある家の形</a></li>
+    <li><a href="#start"><span class="n">02</span>最初の5分</a></li>
+    <li><a href="#screen"><span class="n">03</span>画面の見かた</a></li>
+  </ol>
+  <div class="toc-group">基本の使い方</div>
+  <ol>
+    <li><a href="#add"><span class="n">04</span>機器を追加する</a></li>
+    <li><a href="#connect"><span class="n">05</span>機器をつなぐ</a></li>
+    <li><a href="#detail"><span class="n">06</span>機器の詳細</a></li>
+    <li><a href="#rooms"><span class="n">07</span>部屋と間取り</a></li>
+    <li><a href="#devices"><span class="n">08</span>機器の一覧と表で編集</a></li>
+    <li><a href="#backup"><span class="n">09</span>バックアップ</a></li>
+  </ol>
+  <div class="toc-group">IPアドレス</div>
+  <ol>
+    <li><a href="#ip"><span class="n">10</span>IPアドレスのしくみ・IP台帳</a></li>
+    <li><a href="#ranges"><span class="n">11</span>ネットワークを分ける</a></li>
+  </ol>
+  <div class="toc-group">もっと使いこなす</div>
+  <ol>
+    <li><a href="#map"><span class="n">12</span>構成図を見やすく整える</a></li>
+    <li><a href="#wire"><span class="n">13</span>配線（口とケーブル）</a></li>
+    <li><a href="#check"><span class="n">14</span>診断と照合</a></li>
+    <li><a href="#vlan"><span class="n">15</span>VLAN・グループ・レイヤー</a></li>
+    <li><a href="#export"><span class="n">16</span>書き出し・印刷・読み込み</a></li>
+    <li><a href="#networks"><span class="n">17</span>いくつものネットワーク</a></li>
+    <li><a href="#look"><span class="n">18</span>表示とデザイン</a></li>
+    <li><a href="#app"><span class="n">19</span>ホーム画面のアプリにする</a></li>
+  </ol>
+  <div class="toc-group">資料</div>
+  <ol>
+    <li><a href="#keys"><span class="n">20</span>操作の一覧</a></li>
+    <li><a href="#words"><span class="n">21</span>用語集</a></li>
+    <li><a href="#privacy"><span class="n">22</span>データとプライバシー</a></li>
+    <li><a href="#faq"><span class="n">23</span>困ったとき</a></li>
+    <li><a href="#limits"><span class="n">24</span>上限</a></li>
+  </ol>
+
+</nav>
+
+<main id="main">
+<nav class="toc toc-top" id="toc" aria-label="目次">
+  <details><summary><svg class="ic s16" aria-hidden="true"><use href="#i-table"/></svg>目次</summary>
+  <div class="toc-group">はじめに</div>
+  <ol>
+    <li><a href="#about"><span class="n">・</span>このアプリでできること</a></li>
+    <li><a href="#patterns"><span class="n">01</span>よくある家の形</a></li>
+    <li><a href="#start"><span class="n">02</span>最初の5分</a></li>
+    <li><a href="#screen"><span class="n">03</span>画面の見かた</a></li>
+  </ol>
+  <div class="toc-group">基本の使い方</div>
+  <ol>
+    <li><a href="#add"><span class="n">04</span>機器を追加する</a></li>
+    <li><a href="#connect"><span class="n">05</span>機器をつなぐ</a></li>
+    <li><a href="#detail"><span class="n">06</span>機器の詳細</a></li>
+    <li><a href="#rooms"><span class="n">07</span>部屋と間取り</a></li>
+    <li><a href="#devices"><span class="n">08</span>機器の一覧と表で編集</a></li>
+    <li><a href="#backup"><span class="n">09</span>バックアップ</a></li>
+  </ol>
+  <div class="toc-group">IPアドレス</div>
+  <ol>
+    <li><a href="#ip"><span class="n">10</span>IPアドレスのしくみ・IP台帳</a></li>
+    <li><a href="#ranges"><span class="n">11</span>ネットワークを分ける</a></li>
+  </ol>
+  <div class="toc-group">もっと使いこなす</div>
+  <ol>
+    <li><a href="#map"><span class="n">12</span>構成図を見やすく整える</a></li>
+    <li><a href="#wire"><span class="n">13</span>配線（口とケーブル）</a></li>
+    <li><a href="#check"><span class="n">14</span>診断と照合</a></li>
+    <li><a href="#vlan"><span class="n">15</span>VLAN・グループ・レイヤー</a></li>
+    <li><a href="#export"><span class="n">16</span>書き出し・印刷・読み込み</a></li>
+    <li><a href="#networks"><span class="n">17</span>いくつものネットワーク</a></li>
+    <li><a href="#look"><span class="n">18</span>表示とデザイン</a></li>
+    <li><a href="#app"><span class="n">19</span>ホーム画面のアプリにする</a></li>
+  </ol>
+  <div class="toc-group">資料</div>
+  <ol>
+    <li><a href="#keys"><span class="n">20</span>操作の一覧</a></li>
+    <li><a href="#words"><span class="n">21</span>用語集</a></li>
+    <li><a href="#privacy"><span class="n">22</span>データとプライバシー</a></li>
+    <li><a href="#faq"><span class="n">23</span>困ったとき</a></li>
+    <li><a href="#limits"><span class="n">24</span>上限</a></li>
+  </ol>
+
+  </details>
+  <p class="find-tip">このページの中を探すには：パソコンは <kbd>Ctrl</kbd>+<kbd>F</kbd>（Macは <kbd>⌘</kbd>+<kbd>F</kbd>）、iPhoneは共有ボタン →「ページを検索」。</p>
+</nav>
+
+<!-- ===================================================== はじめに -->
+<section class="hero" id="about">
+  <h2>家のネットワークを、<br>1枚の図と台帳に。</h2>
+  <p class="lead">HomeNet Atlas は、ルーター・Wi-Fi・パソコン・テレビなど、家の中のネットワーク機器と、その<b>つながり</b>を記録するアプリです。図にしておくと、回線のトラブル、機器の買い替え、家族への説明がぐっと楽になります。</p>
+  <ul class="promise">
+    <li><svg class="ic s16" aria-hidden="true"><use href="#i-check"/></svg>このスマホ・パソコンの中だけに保存</li>
+    <li><svg class="ic s16" aria-hidden="true"><use href="#i-check"/></svg>記録をインターネットへ送らない</li>
+    <li><svg class="ic s16" aria-hidden="true"><use href="#i-check"/></svg>Wi-Fiのパスワードは記録しない</li>
+    <li><svg class="ic s16" aria-hidden="true"><use href="#i-check"/></svg>オフラインでも使える</li>
+  </ul>
+  <figure class="wide">
+    <div class="scroll"><svg class="dg" viewBox="0 0 680 250" role="img" aria-labelledby="f1t">
+      <title id="f1t">構成図の例：インターネットからONU、Wi-Fiルーター、スイッチを通って各機器へ</title>
+      <rect class="bg" width="680" height="250" rx="12"/><rect class="dots" width="680" height="250" rx="12"/>
+      <path class="fib" d="M144 125H182"/><path class="fib-core" d="M144 125H182"/>
+      <path class="lan" d="M276 125H312"/>
+      <path class="lan" d="M430 125h16V58h20M446 125h20"/>
+      <path class="wifi" d="M430 125h16v68h20"/>
+      <path class="lan" d="M572 58h14"/>
+      <g><rect class="n-inf" x="20" y="109" width="124" height="32" rx="16"/><use href="#i-internet" class="gi cinv" x="30" y="117" width="16" height="16"/><text class="t12 b n-inf-t" x="52" y="129">インターネット</text></g>
+      <g><rect class="n-inf" x="182" y="109" width="94" height="32" rx="16"/><use href="#i-onu" class="gi cinv" x="192" y="117" width="16" height="16"/><text class="t12 b n-inf-t" x="214" y="124">ONU</text><text class="t11 n-inf-s" x="214" y="136">光回線</text></g>
+      <g><rect class="n-inf" x="312" y="109" width="118" height="32" rx="16"/><use href="#i-wifi-router" class="gi cinv" x="322" y="117" width="16" height="16"/><text class="t12 b n-inf-t" x="344" y="124">Wi-Fiルーター</text><text class="t11 n-inf-s mo" x="344" y="136">192.168.1.1</text></g>
+      <g><rect class="n-inf" x="466" y="42" width="106" height="32" rx="16"/><use href="#i-switch" class="gi cinv" x="476" y="50" width="16" height="16"/><text class="t12 b n-inf-t" x="498" y="57">スイッチ</text><text class="t11 n-inf-s" x="498" y="69">5/8口</text></g>
+      <g><rect class="n-end" x="586" y="42" width="74" height="32" rx="16"/><use href="#i-nas" class="gi ci" x="596" y="50" width="16" height="16"/><text class="t12 b" x="618" y="62">NAS</text></g>
+      <g><rect class="n-end" x="466" y="109" width="150" height="32" rx="16"/><use href="#i-tv" class="gi ci" x="476" y="117" width="16" height="16"/><text class="t12 b" x="498" y="124">リビングのテレビ</text><text class="t11 n-end-s mo" x="498" y="136">192.168.1.30</text></g>
+      <g><rect class="n-end" x="466" y="177" width="110" height="32" rx="16"/><use href="#i-phone" class="gi ci" x="476" y="185" width="16" height="16"/><text class="t12 b" x="498" y="197">スマホ</text></g>
+      <rect class="notebox" x="160" y="168" width="200" height="44" rx="6"/><text class="t11 b" x="170" y="186">回線のトラブル時は</text><text class="t11 b" x="170" y="202">ONU → ルーターの順に再起動</text>
+    </svg></div>
+    <figcaption>構成図の例。<b style="color:var(--m-fiber)">オレンジの二重線</b>は光回線、<b style="color:var(--m-lan)">青い線</b>は有線LAN、<b style="color:var(--m-wifi)">紫の点線</b>はWi-Fi。塗りつぶした形の機器はルーターやスイッチングハブなどのネットワーク機器、縁取りだけの機器はパソコンやテレビなどです。</figcaption>
+  </figure>
+
+  <h3 id="goals"><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg>やりたいことから探す</h3>
+  <div class="goals">
+    <a href="#start"><b>とにかく始めたい</b><span>最初の5分</span></a>
+    <a href="#patterns"><b>うちの形に近い例を見たい</b><span>よくある家の形</span></a>
+    <a href="#check-reconcile"><b>記録していない機器を見つけたい</b><span>ルーターの一覧と照合</span></a>
+    <a href="#ip"><b>プリンターやNASの固定IPを決めたい</b><span>IPアドレスのしくみ</span></a>
+    <a href="#export-print"><b>家族に構成を説明したい・貼っておきたい</b><span>印刷・画像の書き出し</span></a>
+    <a href="#wire"><b>どの口に何を挿したか残したい</b><span>配線</span></a>
+    <a href="#backup"><b>データを失いたくない・別の端末へ移したい</b><span>バックアップ</span></a>
+    <a href="#networks"><b>実家や事務所も記録したい</b><span>いくつものネットワーク</span></a>
+  </div>
+</section>
+
+<!-- ===================================================== 01 よくある家の形 -->
+<section class="sec" id="patterns">
+  <h2><span class="no">01</span>よくある家の形と記録のしかた</h2>
+  <p>まずは、自分の家がどれに近いかを見てください。光回線の家では、ふつう<b>回線会社の機器</b>（ONU やホームゲートウェイ）があり、その先に Wi-Fi ルーターなどがつながっています。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 330" role="img" aria-labelledby="fpt">
+      <title id="fpt">よくある家のネットワークの形4つ</title>
+      <g transform="translate(0 0)">
+        <rect class="bg" x="0" y="0" width="296" height="160" rx="12"/>
+        <text class="t13 xb" x="14" y="24">A　ONU ＋ Wi-Fiルーター</text>
+        <path class="fib" d="M64 66v16" style="stroke-width:4"/><path class="lan" d="M64 104v16" style="stroke-width:2.4"/><path class="wifi" d="M118 131h40" style="stroke-width:2.4"/>
+        <rect class="n-inf" x="14" y="40" width="118" height="26" rx="13"/><text class="t11 b n-inf-t" x="26" y="57">インターネット</text>
+        <rect class="n-inf" x="14" y="82" width="104" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="97">ONU</text>
+        <rect class="n-inf" x="14" y="120" width="104" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="135">Wi-Fiルーター</text>
+        <rect class="n-end" x="158" y="120" width="64" height="22" rx="11"/><text class="t11 b" x="170" y="135">スマホ</text>
+        <text class="t11 mu" x="150" y="62">いちばん多い形。</text><text class="t11 mu" x="150" y="80">ONU は「ONU・モデム」</text><text class="t11 mu" x="150" y="98">の種類で記録します</text>
+      </g>
+      <g transform="translate(304 0)">
+        <rect class="bg" x="0" y="0" width="296" height="160" rx="12"/>
+        <text class="t13 xb" x="14" y="24">B　ホームゲートウェイ1台</text>
+        <path class="fib" d="M64 66v16" style="stroke-width:4"/><path class="wifi" d="M150 93h26" style="stroke-width:2.4"/>
+        <rect class="n-inf" x="14" y="40" width="118" height="26" rx="13"/><text class="t11 b n-inf-t" x="26" y="57">インターネット</text>
+        <rect class="n-inf" x="14" y="82" width="136" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="97">ホームゲートウェイ</text>
+        <rect class="n-end" x="176" y="82" width="64" height="22" rx="11"/><text class="t11 b" x="188" y="97">スマホ</text>
+        <text class="t11 mu" x="14" y="120">ONU とルーターが1台になった機器。</text><text class="t11 mu" x="14" y="135">「ONU・モデム」で追加し、詳細設定の</text><text class="t11 mu" x="14" y="150">動作モードを「ルーター機能あり」に</text>
+      </g>
+      <g transform="translate(0 170)">
+        <rect class="bg" x="0" y="0" width="296" height="160" rx="12"/>
+        <text class="t13 xb" x="14" y="24">C　ゲートウェイ ＋ Wi-Fiルーター</text>
+        <path class="fib" d="M64 66v16" style="stroke-width:4"/><path class="lan" d="M64 104v16" style="stroke-width:2.4"/><path class="wifi" d="M170 131h20" style="stroke-width:2.4"/>
+        <rect class="n-inf" x="14" y="40" width="118" height="26" rx="13"/><text class="t11 b n-inf-t" x="26" y="57">インターネット</text>
+        <rect class="n-inf" x="14" y="82" width="136" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="97">ホームゲートウェイ</text>
+        <rect class="n-inf" x="14" y="120" width="156" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="135">Wi-Fiルーター（ブリッジ）</text>
+        <rect class="n-end" x="190" y="120" width="64" height="22" rx="11"/><text class="t11 b" x="202" y="135">スマホ</text>
+        <text class="t11 mu" x="160" y="88">Wi-Fiルーターは</text><text class="t11 mu" x="160" y="104">ブリッジ（AP）が基本</text>
+      </g>
+      <g transform="translate(304 170)">
+        <rect class="bg" x="0" y="0" width="296" height="160" rx="12"/>
+        <text class="t13 xb" x="14" y="24">D　メッシュWi-Fi・中継器</text>
+        <path class="fib" d="M64 66v16" style="stroke-width:4"/><path class="lan" d="M64 104v16" style="stroke-width:2.4"/><path class="wifi" d="M118 131h22" style="stroke-width:2.4"/><path class="wifi" d="M222 131h14" style="stroke-width:2.4"/>
+        <rect class="n-inf" x="14" y="40" width="118" height="26" rx="13"/><text class="t11 b n-inf-t" x="26" y="57">インターネット</text>
+        <rect class="n-inf" x="14" y="82" width="104" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="97">ONU</text>
+        <rect class="n-inf" x="14" y="120" width="104" height="22" rx="11"/><text class="t11 b n-inf-t" x="26" y="135">親機</text>
+        <rect class="n-inf" x="140" y="120" width="82" height="22" rx="11"/><text class="t11 b n-inf-t" x="150" y="135">中継器</text>
+        <rect class="n-end" x="236" y="120" width="52" height="22" rx="11"/><text class="t11 b" x="244" y="135">スマホ</text>
+        <text class="t11 mu" x="142" y="56">親機は「Wi-Fiルーター」</text><text class="t11 mu" x="142" y="72">子機は「中継器・AP」</text><text class="t11 mu" x="142" y="88">の種類で記録</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>ひな形の「Wi-Fiルーターが1台」はA、「メッシュWi-Fi」はD、「有線LANも使う」はAにスイッチングハブと有線のアクセスポイントを足した形です。回線会社の機器がどれかわからないときは、本体のラベルや契約書類を見て「ONU」「ホームゲートウェイ」などの名前を探してください。</figcaption>
+  </figure>
+  <div class="box tip"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><p>BやCの形なのに、ホームゲートウェイを「ルーター機能あり」にしていないと、診断の「<a href="#words-double">二重ルーター</a>」が正しく見つけられません。Cの形で、Wi-Fiルーターもルーターとして動いている（ブリッジにしていない）場合は、実際に二重ルーターになっています。</p></div>
+</section>
+
+<!-- ===================================================== 02 最初の5分 -->
+<section class="sec" id="start">
+  <h2><span class="no">02</span>最初の5分</h2>
+  <p>はじめて開くと「<b>わが家のネットワークを描きはじめましょう</b>」という案内が出ます。次の順に進めると、5分ほどで家のネットワークの骨組みができます。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 190" role="img" aria-labelledby="f2t">
+      <title id="f2t">はじめの画面：3つのひな形と、下のボタン</title>
+      <rect class="surf" x="1" y="1" width="598" height="188" rx="16"/>
+      <text class="t14 xb" x="20" y="30">わが家のネットワークを描きはじめましょう</text>
+      <g transform="translate(20 44)">
+        <rect class="surf" width="180" height="88" rx="10"/><rect class="surf2" x="8" y="8" width="164" height="36" rx="6"/>
+        <path class="fib" d="M26 26h40" style="stroke-width:3"/><path class="lan" d="M66 26h80" style="stroke-width:2"/>
+        <circle cx="26" cy="26" r="5" class="dark"/><circle cx="86" cy="26" r="5" class="dark"/><circle cx="146" cy="26" r="5" class="dark"/>
+        <text class="t12 b" x="10" y="64">Wi-Fiルーターが1台</text><text class="t11 mu" x="10" y="80">いちばん多い形</text>
+      </g>
+      <g transform="translate(210 44)">
+        <rect class="surf" width="180" height="88" rx="10"/><rect class="surf2" x="8" y="8" width="164" height="36" rx="6"/>
+        <path class="fib" d="M22 26h32" style="stroke-width:3"/><path class="lan" d="M54 26h46" style="stroke-width:2"/><path class="wifi" d="M100 26c14 0 14-9 30-9M100 26c14 0 14 9 30 9" style="stroke-width:2.4"/>
+        <circle cx="22" cy="26" r="5" class="dark"/><circle cx="62" cy="26" r="5" class="dark"/><circle cx="100" cy="26" r="5" class="dark"/><circle cx="134" cy="17" r="5" class="dark"/><circle cx="134" cy="35" r="5" class="dark"/>
+        <text class="t12 b" x="10" y="64">メッシュWi-Fi</text><text class="t11 mu" x="10" y="80">親機と中継器で家じゅうを</text>
+      </g>
+      <g transform="translate(400 44)">
+        <rect class="surf" width="180" height="88" rx="10"/><rect class="surf2" x="8" y="8" width="164" height="36" rx="6"/>
+        <path class="fib" d="M22 26h28" style="stroke-width:3"/><path class="lan" d="M50 26h104" style="stroke-width:2"/>
+        <circle cx="22" cy="26" r="5" class="dark"/><circle cx="50" cy="26" r="5" class="dark"/><circle cx="84" cy="26" r="5" class="dark"/><circle cx="118" cy="26" r="5" class="dark"/><circle cx="152" cy="26" r="5" class="dark"/>
+        <text class="t12 b" x="10" y="64">有線LANも使う</text><text class="t11 mu" x="10" y="80">ハブで各部屋へ配線</text>
+      </g>
+      <g transform="translate(20 146)">
+        <rect class="dark" width="100" height="30" rx="8"/><text class="t12 b darkt" x="50" y="20" text-anchor="middle">＋ 1台ずつ追加</text>
+        <rect class="surf" x="108" width="120" height="30" rx="8"/><text class="t12 b mid" x="168" y="20">まとめて貼り付け</text>
+        <rect class="surf" x="236" width="108" height="30" rx="8"/><text class="t12 b mid" x="290" y="20">サンプルを見る</text>
+        <text class="t12 b" x="356" y="20">ファイルを読み込む</text>
+        <text class="t12 b" x="490" y="20">使い方</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>はじめの画面。ひな形を選ぶと、インターネット → ONU → ルーター…の骨組みが入ります。まずは「サンプルを見る」で、架空の家（機器19台）を触ってみるのもおすすめです。</figcaption>
+  </figure>
+  <ol class="steps">
+    <li><b class="h">始め方を選ぶ</b><p>ひな形・サンプル・空の状態のどれからでも始められます。あとからひな形を選び直すと、機器・つながり・グループ・VLAN・枠・メモ・保存した並び方は置き換わり、部屋・ネットワークの範囲・レイヤーはそのまま残ります（<span class="ui">設定</span> › 「アプリ」 › 「ひな形から始める」）。</p></li>
+    <li><b class="h">機器を足す</b><p>右上の <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>機器を追加</span>（スマホは右下の丸い＋）。名前を入れると種類を自動で選びます。例：「リビングのテレビ」→ 種類「テレビ」。<a href="#rooms">部屋</a>を先に登録しておくと、名前に入っている部屋（リビング）も選びます。</p></li>
+    <li><b class="h">つなぐ</b><p>追加の画面の「どこにつなぐ？」で選ぶか、図で機器を選ぶと右側に出る<b>黄色い＋の丸</b>から、相手の機器までドラッグします（スマホは機器を長押し。→ <a href="#connect">機器をつなぐ</a>）。</p></li>
+    <li><b class="h">IPアドレスを記録する（わかる機器だけ）</b><p>機器の詳細の「IPアドレス」に入れ、ルーターが配っているなら「自動」、決めて設定しているなら「固定」。わからなければ空欄で大丈夫です（調べ方は <a href="#faq-ipmac">困ったとき</a>）。</p></li>
+    <li><b class="h">ファイルに書き出しておく</b><p>記録はこのスマホ・パソコンのブラウザの中に自動で保存されます。故障や機種変更に備えて、ときどき <span class="ui">設定</span> › 「バックアップと書き出し」 › 「データを書き出す」でファイルに残してください（→ <a href="#backup">バックアップ</a>）。</p></li>
+  </ol>
+  <div class="box tip"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><p>機器が多い家では、ルーターの管理画面の「接続中の端末」などの一覧をコピーして貼り付けるのが近道です（→ <a href="#add-bulk">まとめて追加</a>、<a href="#check-reconcile">照合</a>）。</p></div>
+</section>
+
+<!-- ===================================================== 03 画面の見かた -->
+<section class="sec" id="screen">
+  <h2><span class="no">03</span>画面の見かた</h2>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>パソコン</h3>
+  <figure class="wide">
+    <div class="scroll"><svg class="dg" viewBox="0 0 680 420" role="img" aria-labelledby="f3t">
+      <title id="f3t">パソコンの画面の各部の名前</title>
+      <rect class="bg" width="680" height="420" rx="12"/><rect class="dots" x="68" y="48" width="612" height="372"/>
+      <!-- 左のメニュー -->
+      <rect class="chrome" width="68" height="420" rx="12"/><rect class="chrome" x="40" width="28" height="420"/><path class="ln" d="M68 0v420"/>
+      <rect class="dark" x="18" y="10" width="32" height="32" rx="9"/><use href="#i-brand" class="gi cpr" x="24" y="16" width="20" height="20"/>
+      <rect class="self" x="12" y="58" width="44" height="26" rx="13"/>
+      <use href="#i-map" class="gi ci" x="24" y="61" width="20" height="20"/><text class="t11 b mid" x="34" y="98">構成図</text>
+      <use href="#i-cable" class="gi cm" x="24" y="112" width="20" height="20"/><text class="t11 mid mu" x="34" y="146">配線</text>
+      <use href="#i-devices" class="gi cm" x="24" y="160" width="20" height="20"/><text class="t11 mid mu" x="34" y="194">機器</text>
+      <use href="#i-ipgrid" class="gi cm" x="24" y="208" width="20" height="20"/><text class="t11 mid mu" x="34" y="242">IP台帳</text>
+      <use href="#i-rooms" class="gi cm" x="24" y="256" width="20" height="20"/><text class="t11 mid mu" x="34" y="290">部屋</text>
+      <use href="#i-settings" class="gi cm" x="24" y="372" width="20" height="20"/><text class="t11 mid mu" x="34" y="406">設定</text>
+      <!-- 上の帯 -->
+      <rect class="chrome" x="68" y="0" width="612" height="48"/><path class="ln" d="M68 48h612"/><rect class="chrome" x="640" width="40" height="20" rx="12"/>
+      <text class="t14 xb" x="86" y="30">わが家のネットワーク</text><path d="M232 22l4 4 4-4" class="lns" style="stroke-width:1.6"/>
+      <circle cx="258" cy="25" r="3.5" class="okf"/><text class="t11 mu" x="266" y="29">保存済み</text>
+      <rect x="396" y="12" width="70" height="24" rx="12" style="fill:var(--danger-soft);stroke:var(--danger)"/><use href="#i-alert" class="gi" style="color:var(--danger)" x="404" y="16" width="16" height="16"/><text class="t11 b" x="424" y="29" style="fill:var(--danger)">1 注意</text>
+      <use href="#i-undo" class="gi ci" x="478" y="14" width="20" height="20"/><use href="#i-redo" class="gi cm" x="508" y="14" width="20" height="20"/>
+      <rect class="dark" x="546" y="10" width="122" height="28" rx="9"/><use href="#i-plus" class="gi cpr" x="556" y="16" width="16" height="16"/><text class="t12 b darkt" x="578" y="29">機器を追加</text>
+      <!-- 図の左上：表示の切り替え -->
+      <rect class="surf" x="82" y="60" width="164" height="34" rx="11"/><rect class="surf2" x="86" y="64" width="86" height="26" rx="8"/>
+      <use href="#i-map" class="gi ci" x="92" y="69" width="16" height="16"/><text class="t12 b" x="112" y="82">つながり</text><use href="#i-rooms" class="gi cm" x="180" y="69" width="16" height="16"/><text class="t12 mu" x="200" y="82">間取り</text>
+      <!-- 図の右上：道具 -->
+      <rect class="surf" x="430" y="60" width="238" height="34" rx="11"/>
+      <use href="#i-layout" class="gi ci" x="442" y="69" width="16" height="16"/><text class="t12 b" x="462" y="82">自動整列</text>
+      <use href="#i-bookmark" class="gi ci" x="528" y="69" width="16" height="16"/><use href="#i-parts" class="gi ci" x="556" y="69" width="16" height="16"/><use href="#i-fit" class="gi ci" x="584" y="69" width="16" height="16"/><use href="#i-layers" class="gi ci" x="612" y="69" width="16" height="16"/><use href="#i-more" class="gi ci" x="640" y="69" width="16" height="16"/>
+      <!-- 図 -->
+      <path class="fib" d="M198 210h24"/><path class="fib-core" d="M198 210h24"/><path class="lan" d="M292 210h26"/><path class="lan" d="M436 210h20v-50h20M456 210h20"/><path class="wifi" d="M436 210h20v52h20"/>
+      <g><rect class="n-inf" x="84" y="194" width="114" height="32" rx="16"/><use href="#i-internet" class="gi cinv" x="94" y="202" width="16" height="16"/><text class="t11 b n-inf-t" x="114" y="214">インターネット</text></g>
+      <g><rect class="n-inf" x="222" y="194" width="70" height="32" rx="16"/><use href="#i-onu" class="gi cinv" x="232" y="202" width="16" height="16"/><text class="t11 b n-inf-t" x="252" y="214">ONU</text></g>
+      <g><rect class="n-inf" x="318" y="194" width="118" height="32" rx="16"/><rect class="sel" x="315" y="191" width="124" height="38" rx="19"/><use href="#i-wifi-router" class="gi cinv" x="328" y="202" width="16" height="16"/><text class="t11 b n-inf-t" x="348" y="214">Wi-Fiルーター</text><circle cx="448" cy="210" r="7" style="fill:var(--sel);stroke:var(--sel-ink);stroke-width:1.5"/><path d="M445 210h6M448 207v6" style="stroke:var(--sel-ink);stroke-width:1.5;stroke-linecap:round"/></g>
+      <g><rect class="n-end" x="476" y="144" width="100" height="32" rx="16"/><use href="#i-pc" class="gi ci" x="486" y="152" width="16" height="16"/><text class="t11 b" x="506" y="164">書斎PC</text></g>
+      <g><rect class="n-end" x="476" y="194" width="100" height="32" rx="16"/><use href="#i-tv" class="gi ci" x="486" y="202" width="16" height="16"/><text class="t11 b" x="506" y="214">テレビ</text></g>
+      <g><rect class="n-end" x="476" y="246" width="100" height="32" rx="16"/><use href="#i-phone" class="gi ci" x="486" y="254" width="16" height="16"/><text class="t11 b" x="506" y="266">スマホ</text></g>
+      <!-- 凡例と拡大 -->
+      <rect class="surf" x="82" y="300" width="170" height="70" rx="11"/>
+      <path class="lan" d="M94 318h22" style="stroke-width:2.6"/><text class="t11" x="122" y="322">有線LAN</text><path class="wifi" d="M180 318h22" style="stroke-width:2.6"/><text class="t11" x="206" y="322">Wi-Fi</text>
+      <path class="fib" d="M94 340h22" style="stroke-width:4"/><path class="fib-core" d="M94 340h22"/><text class="t11" x="122" y="344">光回線</text><path class="oth" d="M180 340h22"/><text class="t11" x="206" y="344">その他</text>
+      <rect class="plan" x="94" y="354" width="22" height="9" rx="4.5"/><text class="t11" x="122" y="363">導入予定</text>
+      <rect class="surf" x="82" y="378" width="110" height="30" rx="10"/><text class="t14 b mid" x="100" y="398">−</text><text class="t11 b mid" x="137" y="397">100%</text><text class="t14 b mid" x="174" y="398">＋</text>
+      <!-- 番号 -->
+      <g class="call"><circle cx="58" cy="128" r="11"/><text x="58" y="128">1</text></g>
+      <g class="call"><circle cx="150" cy="46" r="11"/><text x="150" y="46">2</text></g>
+      <g class="call"><circle cx="300" cy="46" r="11"/><text x="300" y="46">3</text></g>
+      <g class="call"><circle cx="400" cy="8" r="11"/><text x="400" y="8">4</text></g>
+      <g class="call"><circle cx="508" cy="44" r="11"/><text x="508" y="44">5</text></g>
+      <g class="call"><circle cx="666" cy="8" r="11"/><text x="666" y="8">6</text></g>
+      <g class="call"><circle cx="254" cy="62" r="11"/><text x="254" y="62">7</text></g>
+      <g class="call"><circle cx="560" cy="106" r="11"/><text x="560" y="106">8</text></g>
+      <g class="call"><circle cx="376" cy="246" r="11"/><text x="376" y="246">9</text></g>
+      <g class="call"><circle cx="448" cy="232" r="11"/><text x="448" y="232">10</text></g>
+      <g class="call"><circle cx="262" cy="306" r="11"/><text x="262" y="306">11</text></g>
+      <g class="call"><circle cx="204" cy="392" r="11"/><text x="204" y="392">12</text></g>
+    </svg></div>
+    <ol class="callouts">
+      <li><b>1</b><span><b>画面の切り替え</b>：構成図・配線・機器・IP台帳・部屋・設定。数字キー <kbd>1</kbd>〜<kbd>6</kbd> でも。</span></li>
+      <li><b>2</b><span><b>ネットワークの名前</b>：押すと名前の変更と、実家・事務所など<a href="#networks">ほかのネットワーク</a>への切り替え。</span></li>
+      <li><b>3</b><span><b>保存の状態</b>：「保存済み」なら、このブラウザに保存できています。</span></li>
+      <li><b>4</b><span><b>注意</b>：診断で重要な注意があるときだけ出ます。押すと<a href="#check">診断</a>。</span></li>
+      <li><b>5</b><span><b>元に戻す・やり直す</b>（<kbd>Ctrl</kbd>+<kbd>Z</kbd> ／ <span class="nw"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span>）。</span></li>
+      <li><b>6</b><span><b>機器を追加</b>（<kbd>N</kbd>）。部屋の画面では「部屋を追加」。</span></li>
+      <li><b>7</b><span><b>つながり／間取り</b>：構成図の表し方の切り替え。</span></li>
+      <li><b>8</b><span><b>図の道具</b>：左から 自動整列（<kbd>L</kbd>）・<svg class="ic s16" aria-hidden="true"><use href="#i-bookmark"/></svg><a href="#arrs">並び方</a>・<svg class="ic s16" aria-hidden="true"><use href="#i-parts"/></svg>パーツ（<kbd>P</kbd>）・<svg class="ic s16" aria-hidden="true"><use href="#i-fit"/></svg>全体を表示（<kbd>F</kbd>）・<svg class="ic s16" aria-hidden="true"><use href="#i-layers"/></svg><a href="#viewpanel">表示</a>・<svg class="ic s16" aria-hidden="true"><use href="#i-more"/></svg>探す・書き出す（<kbd>Ctrl</kbd>+<kbd>F</kbd>）。</span></li>
+      <li><b>9</b><span><b>選んだ機器</b>：黄色の縁。下に操作のバー（つなぐ・詳細・その他・削除）が出ます。ダブルクリックで詳細。</span></li>
+      <li><b>10</b><span><b>黄色い＋の丸</b>：ここからドラッグすると、ほかの機器とつなげます（マウスを重ねたとき・選んだときに出ます）。</span></li>
+      <li><b>11</b><span><b>凡例</b>：線の種類の見分け方。</span></li>
+      <li><b>12</b><span><b>拡大・縮小</b>：「100%」を押すと元の大きさに。</span></li>
+    </ol>
+  </figure>
+
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>スマホ</h3>
+  <div class="phone-row">
+    <figure class="narrow">
+      <svg class="dg" viewBox="0 0 210 330" role="img" aria-labelledby="f4t">
+        <title id="f4t">スマホの画面の各部の名前</title>
+        <g transform="translate(4 6)">
+          <rect x="0" y="0" width="190" height="318" rx="26" style="fill:var(--ink)"/>
+          <rect class="bg" x="7" y="7" width="176" height="304" rx="20"/><rect class="dots" x="7" y="40" width="176" height="230"/>
+          <rect class="chrome" x="7" y="7" width="176" height="34" rx="20"/><rect class="chrome" x="7" y="24" width="176" height="17"/><path class="ln" d="M7 41h176"/>
+          <text class="t11 xb" x="18" y="30">わが家のネット…</text><circle cx="116" cy="26" r="3" class="okf"/><use href="#i-undo" class="gi ci" x="134" y="18" width="16" height="16"/><use href="#i-redo" class="gi cm" x="156" y="18" width="16" height="16"/>
+          <rect class="surf" x="12" y="48" width="58" height="24" rx="8"/><use href="#i-map" class="gi ci" x="17" y="52" width="16" height="16"/><use href="#i-rooms" class="gi cm" x="47" y="52" width="16" height="16"/>
+          <rect class="surf" x="74" y="48" width="104" height="24" rx="8"/><use href="#i-layout" class="gi ci" x="78" y="52" width="16" height="16"/><use href="#i-parts" class="gi ci" x="98" y="52" width="16" height="16"/><use href="#i-fit" class="gi ci" x="118" y="52" width="16" height="16"/><use href="#i-layers" class="gi ci" x="138" y="52" width="16" height="16"/><use href="#i-more" class="gi ci" x="158" y="52" width="16" height="16"/>
+          <path class="lan" d="M64 140v30M64 186v30" style="stroke-width:2.4"/><path class="wifi" d="M104 202h8" style="stroke-width:2.4"/>
+          <rect class="n-inf" x="24" y="110" width="80" height="28" rx="14"/><text class="t11 b n-inf-t" x="36" y="128">ONU</text>
+          <rect class="n-inf" x="24" y="170" width="80" height="28" rx="14"/><text class="t11 b n-inf-t" x="36" y="188">ルーター</text>
+          <rect class="n-end" x="24" y="218" width="80" height="28" rx="14"/><text class="t11 b" x="36" y="236">テレビ</text>
+          <rect class="n-end" x="112" y="188" width="62" height="28" rx="14"/><text class="t11 b" x="122" y="206">スマホ</text>
+          <circle cx="156" cy="250" r="17" class="self"/><path d="M149 250h14M156 243v14" style="stroke:#17202B;stroke-width:2.4;stroke-linecap:round"/>
+          <rect class="chrome" x="7" y="272" width="176" height="39" rx="20"/><rect class="chrome" x="7" y="272" width="176" height="20"/><path class="ln" d="M7 272h176"/>
+          <rect class="self" x="12" y="278" width="26" height="18" rx="9"/>
+          <use href="#i-map" class="gi ci" x="17" y="279" width="16" height="16"/><use href="#i-cable" class="gi cm" x="45" y="279" width="16" height="16"/><use href="#i-devices" class="gi cm" x="73" y="279" width="16" height="16"/><use href="#i-ipgrid" class="gi cm" x="101" y="279" width="16" height="16"/><use href="#i-rooms" class="gi cm" x="129" y="279" width="16" height="16"/><use href="#i-settings" class="gi cm" x="157" y="279" width="16" height="16"/>
+          <g class="call"><circle cx="194" cy="294" r="10"/><text x="194" y="294">1</text></g>
+          <g class="call"><circle cx="194" cy="250" r="10"/><text x="194" y="250">2</text></g>
+          <g class="call"><circle cx="40" cy="84" r="10"/><text x="40" y="84">3</text></g>
+          <g class="call"><circle cx="194" cy="60" r="10"/><text x="194" y="60">4</text></g>
+          <g class="call"><circle cx="186" cy="186" r="10"/><text x="186" y="186">5</text></g>
+        </g>
+      </svg>
+    </figure>
+    <ol class="callouts one">
+      <li><b>1</b><span>画面の切り替えは下に並びます。</span></li>
+      <li><b>2</b><span>機器の追加は右下の丸い＋。</span></li>
+      <li><b>3</b><span>つながり／間取りの切り替え（選んでいないほうはアイコンだけ）。</span></li>
+      <li><b>4</b><span>図の道具：自動整列・パーツ・全体を表示・表示・探す/書き出す。</span></li>
+      <li><b>5</b><span>機器はタップで選び、ダブルタップで詳細。動かすときは<b>先にタップしてから</b>ドラッグ。</span></li>
+    </ol>
+  </div>
+  <p>2本指でつまむと拡大・縮小、長押しでその場のメニュー（→ <a href="#keys">操作の一覧</a>）。線の種類の凡例は、スマホでは「線の種類」のボタンで開きます。スマホでもほとんどのことができますが、「表で編集」と、一覧の見出しへのドラッグはパソコンだけです。</p>
+
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>6つの画面</h3>
+  <div class="cards">
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg></span>構成図<kbd>1</kbd></h4><p>つながりの図。「つながり」と「間取り」の2つの表し方があります。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-cable"/></svg></span>配線<kbd>2</kbd></h4><p>前面パネルの絵で、口（ポート）とケーブルを記録。<kbd>W</kbd> で構成図と行き来。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-devices"/></svg></span>機器<kbd>3</kbd></h4><p>機器の台帳。検索・並べ替え・まとめて変更、パソコンでは表で編集。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-ipgrid"/></svg></span>IP台帳<kbd>4</kbd></h4><p>IPアドレスを番号順のマス目と一覧で。空きや重なりがすぐわかります。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-rooms"/></svg></span>部屋<kbd>5</kbd></h4><p>部屋と階の登録。部屋の決まっていない機器の整理も。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></span>設定<kbd>6</kbd></h4><p>名前・ネットワーク・表示・デザイン・バックアップ・アプリ。</p></div>
+  </div>
+</section>
+
+<!-- ===================================================== 04 機器を追加 -->
+<section class="sec" id="add">
+  <h2><span class="no">04</span>機器を追加する</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>方法</th><th>こんなとき</th></tr></thead>
+    <tbody>
+      <tr><td><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>機器を追加</span> / <kbd>N</kbd></td><td>1台ずつ、ていねいに。スマホは右下の丸い＋。</td></tr>
+      <tr><td>何もない所をダブルクリック</td><td>図のその場所に追加。右クリック（スマホは長押し）→「ここに機器を追加」でも。</td></tr>
+      <tr><td>「この先に機器を追加」</td><td>ルーターやスイッチングハブを右クリック（長押し）→「この先に機器を追加」。その機器に<b>つながった状態で</b>追加します。</td></tr>
+      <tr><td>＋の丸から引っぱって離す</td><td>何もない所で離すと、つながった状態で新しい機器を追加（→ <a href="#connect">つなぐ</a>）。</td></tr>
+      <tr><td><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-parts"/></svg>パーツ</span>（<kbd>P</kbd>）</td><td>種類やよく使う機器を図へドラッグ。<b>機器の上</b>で離すとその機器につながり、<b>線の上</b>で離すと線のあいだに入ります。何もない所ならつながずに置きます。タップすると追加の画面が開きます。</td></tr>
+      <tr><td><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-paste"/></svg>まとめて追加</span></td><td>名前やIPの一覧を貼り付けて、何台も一度に（下の図）。</td></tr>
+      <tr><td>IP台帳の空いたマス</td><td>番号を決めてから追加（→ <a href="#ip">IP台帳</a>）。</td></tr>
+      <tr><td>ルーターの一覧と照合</td><td>まだ記録していない機器を見つけて追加（→ <a href="#check-reconcile">照合</a>）。</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li>同じ機器を何台も足すときは、追加の画面の下の台数（1〜20台）を増やすか「続けて追加」。IPを入れて台数を増やすと、2台目からは次の空き番号が入ります。</li>
+    <li>追加せずに閉じても、<b>5分以内</b>なら知らせの「続きを入力」で戻れます。</li>
+    <li>同じ機種をよく足すなら「<b>よく使う機器</b>」に登録（機器の詳細の「よく使う機器に登録」、または <span class="ui">設定</span> › 「機器の追加」 › 「よく使う機器」）。メーカー・型番・口の数・つなぎ方・VLAN・詳細設定などを覚えておき、追加の画面・パーツ・右クリックからすぐ出せます。スイッチングハブ（5/8ポート）・メッシュWi-Fi（子機）・スマートプラグ・NAS などの「定番から選ぶ」もあります。</li>
+    <li><span class="ui">設定</span> › 「機器の追加」で、<b>部屋の初期値</b>（「前回と同じ」にすると同じ部屋の機器を続けて入れやすい）、<b>IPの決め方の初期値</b>（「種類で判断」はルーター・NAS・プリンターなどを固定、ほかを自動に）、<b>状態の初期値</b>（これから買う機器をまとめて入れるなら「導入予定」）を決められます。</li>
+  </ul>
+
+  <h3 id="add-bulk"><svg class="ic" aria-hidden="true"><use href="#i-paste"/></svg>まとめて追加（貼り付け）</h3>
+  <p>1行に1台ずつ書いた文字を貼り付けると、名前・IPアドレス・MACアドレスを読み取ります。ルーターの管理画面の一覧を、そのまま貼り付けても大丈夫です。機器の画面・構成図で、入力欄の外に文字を貼り付けても開きます。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 200" role="img" aria-labelledby="f5t">
+      <title id="f5t">貼り付けた文字から、機器の候補が並ぶ様子</title>
+      <rect class="surf" x="1" y="1" width="262" height="198" rx="12"/>
+      <text class="t12 b mu" x="16" y="24">貼り付けた文字</text>
+      <rect class="surf2" x="12" y="34" width="238" height="152" rx="8"/>
+      <text class="t12 mo" x="22" y="58">iPhone-Taro  192.168.1.33</text>
+      <text class="t12 mo" x="22" y="84">リビングのテレビ</text>
+      <text class="t12 mo" x="22" y="102" style="fill:var(--muted)">  192.168.1.30</text>
+      <text class="t12 mo" x="22" y="128">プリンター, 192.168.1.130</text>
+      <text class="t11 mo" x="20" y="160">*  192.168.1.41  AA:BB:CC:DD:EE:41</text>
+      <path d="M270 100h40" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/>
+      <rect class="surf" x="318" y="1" width="281" height="198" rx="12"/>
+      <text class="t12 b mu" x="334" y="24">読み取った機器</text>
+      <g transform="translate(330 36)">
+        <rect class="surf2" width="258" height="32" rx="8"/><rect x="8" y="9" width="14" height="14" rx="4" style="fill:var(--m-lan)"/><path d="M11 16l3 3 5-6" style="stroke:#fff;stroke-width:1.8;fill:none"/><text class="t12 b" x="30" y="21">iPhone-Taro</text><text class="t11 mo mu end" x="250" y="21">192.168.1.33</text>
+        <rect class="surf2" y="38" width="258" height="32" rx="8"/><rect x="8" y="47" width="14" height="14" rx="4" style="fill:var(--m-lan)"/><path d="M11 54l3 3 5-6" style="stroke:#fff;stroke-width:1.8;fill:none"/><text class="t12 b" x="30" y="59">リビングのテレビ</text><text class="t11 mo mu end" x="250" y="59">192.168.1.30</text>
+        <rect class="surf2" y="76" width="258" height="32" rx="8" style="opacity:.55"/><rect x="8" y="85" width="14" height="14" rx="4" class="lns" style="fill:var(--surface)"/><text class="t12 b" x="30" y="97" style="opacity:.6">プリンター</text><rect x="150" y="84" width="54" height="17" rx="8" class="surf3"/><text class="t11 b mid" x="177" y="97">登録済み</text>
+        <rect class="surf2" y="114" width="258" height="32" rx="8"/><rect x="8" y="123" width="14" height="14" rx="4" style="fill:var(--m-lan)"/><path d="M11 130l3 3 5-6" style="stroke:#fff;stroke-width:1.8;fill:none"/><text class="t12 b" x="30" y="135">機器 .41</text><text class="t11 mo mu end" x="250" y="135">192.168.1.41</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>区切りはタブ・カンマ・縦線・2つ以上の空白など、なんでも読みます。行番号・「*」・時刻・電波の強さなどの余分な文字は名前から外します。名前のある行のすぐ下にある、IPやMACだけの行は、その機器にまとめます。名前のないものは「機器 .41」のような名前に。すでに登録している機器は「登録済み」として外れます。行を押すと、追加する・しないを切り替えられます（最大300行）。下で、つなぐ先の機器とつなぎ方（自動・有線LAN・Wi-Fi）、部屋を全部の行にまとめて決められます。</figcaption>
+  </figure>
+</section>
+
+<!-- ===================================================== 05 つなぐ -->
+<section class="sec" id="connect">
+  <h2><span class="no">05</span>機器をつなぐ</h2>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 210" role="img" aria-labelledby="f6t">
+      <title id="f6t">黄色い＋の丸からドラッグして、相手の機器の上で離すとつながる</title>
+      <rect class="bg" width="600" height="210" rx="12"/><rect class="dots" width="600" height="210" rx="12"/>
+      <text class="t12 b mu" x="18" y="26">A　相手の機器の上で離す</text>
+      <rect class="n-inf" x="24" y="66" width="104" height="32" rx="16"/><rect class="sel" x="21" y="63" width="110" height="38" rx="19"/><use href="#i-switch" class="gi cinv" x="34" y="74" width="16" height="16"/><text class="t12 b n-inf-t" x="56" y="87">スイッチ</text>
+      <circle cx="142" cy="82" r="8" style="fill:var(--sel);stroke:var(--sel-ink);stroke-width:1.6"/><path d="M138 82h8M142 78v8" style="stroke:var(--sel-ink);stroke-width:1.6;stroke-linecap:round"/>
+      <path class="drag" d="M150 82C200 82 200 150 232 150"/><circle cx="232" cy="150" r="4" class="self" style="stroke:var(--sel-ink);stroke-width:1.2"/>
+      <rect class="n-end" x="214" y="134" width="74" height="32" rx="16"/><rect x="210" y="130" width="82" height="40" rx="20" style="fill:none;stroke:var(--sel);stroke-width:2.4;stroke-dasharray:5 4"/><use href="#i-nas" class="gi ci" x="224" y="142" width="16" height="16"/><text class="t12 b" x="246" y="155">NAS</text>
+      <path class="hand" d="M250 166l3 14 4-4 4 8 3-1.5-4-8 6-1z"/>
+      <path class="ln" d="M300 18v176"/>
+      <text class="t12 b mu" x="318" y="26">B　何もない所で離す</text>
+      <rect class="n-inf" x="324" y="66" width="104" height="32" rx="16"/><rect class="sel" x="321" y="63" width="110" height="38" rx="19"/><use href="#i-switch" class="gi cinv" x="334" y="74" width="16" height="16"/><text class="t12 b n-inf-t" x="356" y="87">スイッチ</text>
+      <circle cx="442" cy="82" r="8" style="fill:var(--sel);stroke:var(--sel-ink);stroke-width:1.6"/><path d="M438 82h8M442 78v8" style="stroke:var(--sel-ink);stroke-width:1.6;stroke-linecap:round"/>
+      <path class="drag" d="M450 82C496 82 496 150 520 150"/>
+      <rect x="502" y="134" width="86" height="32" rx="16" style="fill:var(--sel-soft);stroke:var(--sel);stroke-width:1.6;stroke-dasharray:4 3"/><text class="t12 b mid" x="545" y="155">＋ 新しい機器</text>
+      <text class="t12 mu" x="318" y="196">その場所に、つながった状態で追加</text>
+      <text class="t12 mu" x="18" y="196">つなぎ方（有線・Wi-Fi…）は自動で選びます</text>
+    </svg>
+    </div>
+    <figcaption>パソコンでは、機器にマウスを重ねるか選ぶと、右側に<b>黄色い＋の丸</b>が出ます。スマホでは機器を<b>長押し</b>すると線が出るので、指を離さずに相手までドラッグします（動かさずに離すとメニュー）。</figcaption>
+  </figure>
+  <h3>ほかのつなぎ方</h3>
+  <ul>
+    <li>機器を選んで、下のバーの <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>つなぐ</span>（または <kbd>C</kbd>）→ 相手の機器を押す。何もない所を押すと、そこに新しい機器を追加してつなぎます。</li>
+    <li>機器の詳細の「接続先」の「変更」、または「つなぐ相手を選ぶ」。</li>
+    <li>配線の画面で、口から口へケーブルをドラッグする（→ <a href="#wire">配線</a>）。</li>
+  </ul>
+  <h3>つないだあとに出る知らせ</h3>
+  <ul>
+    <li><b>「前の線を外す」</b>：スマホやパソコンを別のルーターやハブにつなぐと、前の線も残ります。知らせの「前の線を外す」を押すと、<b>つなぎ替え</b>になります。</li>
+    <li><b>「ポートを配線」</b>：口のある機器どうしをつなぐと出ます。押すと2台を並べて、どの口どうしかを選べます。</li>
+    <li><b>「表と裏を入れ替え」</b>：LANコンセントにつないだとき、部屋側と壁の中が逆なら押します（→ <a href="#wire-outlet">LANコンセント</a>）。</li>
+    <li><b>「○○につなぎ直す」</b>：スイッチングハブなどを1台削除すると、その先の機器はつながりがなくなります。知らせのボタンで、まとめて1つ上の機器につなぎ直せます。</li>
+  </ul>
+  <h3>線の種類と見分け方</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 176" role="img" aria-labelledby="f7t">
+      <title id="f7t">線の種類と、図に出る印</title>
+      <rect class="bg" width="600" height="176" rx="12"/>
+      <path class="lan" d="M24 34h90"/><text class="t13 b" x="24" y="60">有線LAN</text><text class="t11 mu" x="24" y="78">青い実線</text>
+      <path class="wifi" d="M144 34h90"/><text class="t13 b" x="144" y="60">Wi-Fi</text><text class="t11 mu" x="144" y="78">紫の点線</text>
+      <path class="fib" d="M264 34h90"/><path class="fib-core" d="M264 34h90"/><text class="t13 b" x="264" y="60">光回線</text><text class="t11 mu" x="264" y="78">オレンジの二重線</text>
+      <path class="oth" d="M384 34h90"/><text class="t13 b" x="384" y="60">その他</text><text class="t11 mu" x="384" y="78">細いグレー</text>
+      <rect class="plan" x="504" y="22" width="76" height="24" rx="12"/><text class="t13 b" x="504" y="60">導入予定</text><text class="t11 mu" x="504" y="78">点線の機器</text>
+      <path class="ln" d="M16 94h568"/>
+      <g transform="translate(24 108)">
+        <path class="lan" d="M0 12h70"/><rect x="18" y="3" width="34" height="17" rx="5" style="fill:var(--surface);stroke:var(--m-lan)"/><text class="t11 b mid" x="35" y="16" style="fill:var(--m-lan)">×2</text>
+        <text class="t12 b" x="0" y="42">束ねた線（LAG）</text><text class="t11 mu" x="0" y="58">「LAG ×2」「1G ×2」</text>
+      </g>
+      <g transform="translate(164 108)">
+        <path class="lan" d="M0 12h76"/><rect x="2" y="3" width="70" height="17" rx="5" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t11 b mo" x="8" y="16">LAN1→1·1G</text>
+        <text class="t12 b" x="0" y="42">口と速さの札</text><text class="t11 mu" x="0" y="58">ポート番号・速度</text>
+      </g>
+      <g transform="translate(310 108)">
+        <rect class="n-end" x="0" y="0" width="70" height="24" rx="12"/><rect x="2" y="-6" width="26" height="14" rx="4" style="fill:#2E9E62"/><text class="b mid" x="15" y="4" style="font-size:9px;fill:#fff">V20</text><circle cx="66" cy="22" r="4.5" style="fill:#2F7BEA;stroke:var(--surface);stroke-width:1.5"/>
+        <text class="t12 b" x="0" y="42">VLANとグループの印</text><text class="t11 mu" x="0" y="58">左上にVLAN※・右下にグループ</text>
+      </g>
+      <g transform="translate(468 108)">
+        <rect class="n-end" x="0" y="0" width="90" height="24" rx="12"/><path d="M14 27h62" style="stroke:var(--poe);stroke-width:3;stroke-linecap:round"/>
+        <text class="t12 b" x="0" y="42">PoE</text><text class="t11 mu" x="0" y="58">機器の下に黄色い線</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>※ VLANの札は「表示」→「VLANを色で表示」がオンのときに出ます。グループの色の印は設定の「グループの色の印」でオン・オフできます。</figcaption>
+  </figure>
+  <p>つなぎ方は自動で選びます。インターネットとの線は「光回線」、スマホ・タブレット・スマートスピーカーは「Wi-Fi」、ノートPC・プリンター・ゲーム機・カメラ・スマート家電は相手がWi-Fiルーターや中継器なら「Wi-Fi」、中継器とWi-Fiルーター（中継器どうし）も「Wi-Fi」、それ以外は「有線LAN」。違っていたら、線を選んで下のバーで変えられます。</p>
+  <h3 id="connect-link"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>線の詳細</h3>
+  <p>線をダブルクリック（スマホはダブルタップ）すると、線の詳細が開きます。<b>つなぎ方</b>、<b>ポート番号</b>（線の両端に表示。空いている番号の候補と、同じ口の重なりの警告つき）、<b>ラベル</b>（線の真ん中に表示）、<b>速度</b>、<b>束ねる本数</b>、<b>通すVLAN</b>、<b>ケーブル</b>（種類・色など）、<b>メモ</b>を記録できます。「つながり」の表示では、この線だけの<b>線の形</b>も選べます。</p>
+  <div class="box tip"><svg class="ic" aria-hidden="true"><use href="#i-route"/></svg><p>線を右クリック（長押し）→「<b>あいだに機器を入れる</b>」で、LANコンセント・スイッチングハブ・中継器・ルーターを線の途中に入れられます。登録済みのLANコンセントを通すときは「『（コンセントの名前）』を通す」。機器の右クリック →「<b>インターネットまでの経路</b>」では、その機器からインターネットまでの道すじを強調します。</p></div>
+  <p class="note">接続先の候補には、その機器の先（インターネットから見て下側）につながっている機器は出ません。選ぶとインターネットから切れた輪になってしまうためです。</p>
+</section>
+
+<!-- ===================================================== 06 機器の詳細 -->
+<section class="sec" id="detail">
+  <h2><span class="no">06</span>機器の詳細</h2>
+  <p>機器をダブルクリック（スマホはダブルタップ）、または選んで <kbd>Enter</kbd>。追加の画面も同じ形です。<b>入力した内容はその場で保存</b>され、×で閉じても消えません（閉じると「変更を保存しました」と出て、「元に戻す」で取り消せます）。わかるところだけで大丈夫です。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 470" role="img" aria-labelledby="fdt">
+      <title id="fdt">機器の詳細の画面</title>
+      <rect class="bg" width="600" height="470" rx="12"/>
+      <g transform="translate(20 14)">
+        <rect class="surf" width="330" height="442" rx="16"/>
+        <text class="t14 xb mid" x="165" y="28">機器の詳細</text><rect class="dark" x="268" y="12" width="48" height="24" rx="8"/><text class="t11 b darkt mid" x="292" y="28">完了</text><text class="t16 mu" x="18" y="30">×</text>
+        <rect x="14" y="46" width="302" height="34" rx="9" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t14 b" x="26" y="68">リビングのテレビ</text>
+        <text class="t11 b mu" x="14" y="100">種類</text><rect class="surf2" x="14" y="106" width="302" height="30" rx="8"/><use href="#i-tv" class="gi ci" x="24" y="113" width="16" height="16"/><text class="t12 b" x="46" y="126">テレビ</text><text class="t11 b end" x="306" y="126" style="fill:var(--m-lan)">変更</text>
+        <text class="t11 b mu" x="14" y="156">接続先</text><rect class="surf2" x="14" y="162" width="302" height="30" rx="8"/><use href="#i-switch" class="gi ci" x="24" y="169" width="16" height="16"/><text class="t12 b" x="46" y="182">スイッチングハブ</text><text class="t11 mu" x="160" y="182">有線</text><text class="t11 b end" x="306" y="182" style="fill:var(--m-lan)">変更</text>
+        <text class="t11 b mu" x="14" y="212">部屋</text>
+        <rect class="surf3" x="14" y="218" width="64" height="24" rx="12"/><text class="t11 b mid" x="46" y="234">リビング</text><rect class="surf2" x="84" y="218" width="54" height="24" rx="12"/><text class="t11 mid" x="111" y="234">寝室</text><rect class="surf2" x="144" y="218" width="54" height="24" rx="12"/><text class="t11 mid" x="171" y="234">書斎</text>
+        <text class="t11 b mu" x="14" y="262">グループ</text>
+        <rect class="surf3" x="14" y="268" width="76" height="24" rx="12"/><text class="t11 b mid" x="52" y="284">家族共用</text><rect class="surf2" x="96" y="268" width="62" height="24" rx="12"/><text class="t11 mid" x="127" y="284">＋ つくる</text>
+        <text class="t11 b mu" x="14" y="312">IPアドレス</text><rect class="surf2" x="210" y="300" width="106" height="22" rx="7"/><rect class="surf" x="212" y="302" width="50" height="18" rx="6"/><text class="t11 b mid" x="237" y="315">自動</text><text class="t11 mid" x="288" y="315">固定</text>
+        <rect x="14" y="326" width="302" height="30" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mu" x="26" y="346">192.168.1.</text>
+        <text class="t11 mu" x="14" y="374">空いているIP</text><rect class="surf2" x="88" y="362" width="96" height="20" rx="10"/><text class="t11 mo mid" x="136" y="376">192.168.1.200</text><rect class="surf2" x="190" y="362" width="96" height="20" rx="10"/><text class="t11 mo mid" x="238" y="376">192.168.1.201</text>
+        <text class="t11 mu" x="14" y="400">MAC・メーカー・型番・URL・状態・メモ…</text>
+        <path class="ln" d="M14 412h302"/><text class="t12 b" x="14" y="432">› 詳細設定</text><text class="t11 mu" x="96" y="432">動作モード・DNS・Wi-Fi・VLAN…</text>
+      </g>
+      <g class="call"><circle cx="354" cy="77" r="11"/><text x="354" y="77">1</text></g>
+      <g class="call"><circle cx="354" cy="135" r="11"/><text x="354" y="135">2</text></g>
+      <g class="call"><circle cx="354" cy="191" r="11"/><text x="354" y="191">3</text></g>
+      <g class="call"><circle cx="230" cy="244" r="11"/><text x="230" y="244">4</text></g>
+      <g class="call"><circle cx="354" cy="327" r="11"/><text x="354" y="327">5</text></g>
+      <g class="call"><circle cx="318" cy="388" r="11"/><text x="318" y="388">6</text></g>
+      <g class="call"><circle cx="354" cy="440" r="11"/><text x="354" y="440">7</text></g>
+      <g transform="translate(378 0)">
+        <text class="t12" x="0" y="81"><tspan class="xb">1</tspan>　名前（種類を推測します）</text>
+        <text class="t12" x="0" y="139"><tspan class="xb">2</tspan>　種類（22種類から）</text>
+        <text class="t12" x="0" y="195"><tspan class="xb">3</tspan>　つないでいる先と、つなぎ方</text>
+        <text class="t12" x="0" y="248"><tspan class="xb">4</tspan>　部屋・グループ（いくつでも）</text>
+        <text class="t12" x="0" y="331"><tspan class="xb">5</tspan>　IPと「自動／固定」</text>
+        <text class="t12" x="0" y="392"><tspan class="xb">6</tspan>　押すとその番号を固定で入れる</text>
+        <text class="t12" x="0" y="444"><tspan class="xb">7</tspan>　詳しい人向けの設定</text>
+      </g>
+    </svg>
+    </div>
+  </figure>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>項目</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td>名前・種類</td><td>名前から種類を推測します。種類は ONU・ルーター・Wi-Fiルーター・中継器・スイッチングハブ・LANコンセント・パソコン・スマホ・テレビ・NAS など22種類。</td></tr>
+      <tr><td>接続先</td><td>つないでいる先と、つなぎ方（有線・Wi-Fi・光・その他）。追加の画面では「どこにつなぐ？」で、空いている口の数も出ます。「つながり」には、ほかの線も並びます。</td></tr>
+      <tr><td>LANポートの数</td><td>ルーターやハブの口（ポート）の数。足りなくなると診断で知らせます（インターネット側の口は数えません）。</td></tr>
+      <tr><td><a href="#words">PoE</a></td><td>LANケーブルで電気も送る機能。「給電できる／電気を受け取る」。</td></tr>
+      <tr><td>部屋・グループ</td><td>置いてある部屋と、「家族共用」「仕事用」などのまとまり。</td></tr>
+      <tr><td>IPアドレス</td><td>「自動」か「固定」か（もう一度押すと未設定に）。空いているIPの提案、重なり・範囲の確認つき（全角や「192.168.001.077」も自動で直します）。</td></tr>
+      <tr><td>MAC・メーカー・型番</td><td>MACアドレスは「AA:BB:CC:DD:EE:FF」の形にそろえます。</td></tr>
+      <tr><td>管理画面のURL</td><td>「開く」でルーターなどの設定画面へ。ネットワーク機器でURLが空なら、そのIP（<span class="mono">http://IP</span>）を開きます。</td></tr>
+      <tr><td>Wi-Fi名（SSID）</td><td>Wi-Fiルーター・中継器など。<b>パスワードは書かないでください。</b></td></tr>
+      <tr><td>状態・メモ</td><td>使用中／導入予定（点線で表示）／予備／使っていない。メモは契約内容や設定のコツに。</td></tr>
+    </tbody>
+  </table></div>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg>詳細設定（詳しい人向け。わからない項目は空欄で大丈夫です）</h3>
+  <ul>
+    <li><b>動作モード</b>：ONU は「ルーター機能あり／なし（ONUのみ）」（<a href="#patterns">ホームゲートウェイ</a>なら「あり」）。ルーター・Wi-Fiルーターは「ルーター／ブリッジ（AP）」。中継器・アクセスポイントは「アクセスポイント／中継／メッシュ」。</li>
+    <li><b>LAN側</b>（ルーターとして動くとき）：サブネットマスク・DNS・DHCPサーバーのオン/オフと「割り当てる範囲」。</li>
+    <li><b>インターネット側（WAN）</b>：接続方式（PPPoE・IPoE・DHCP・固定IP）、PPPoEの接続ID、IPoEの方式（v6プラス・transix・クロスパスなど）、WAN側IPアドレス（IP台帳の下に別に並びます）、VLAN ID。</li>
+    <li><b>ネットワーク設定</b>（固定IPの機器・ブリッジ・中継器）：サブネットマスク・ゲートウェイ・DNS。空欄には、つながっているルーターの値が薄く出ます。</li>
+    <li><b>スタティックルート</b>、<b>Wi-Fi</b>（周波数帯 2.4/5/6GHz・暗号化・ゲスト用SSID）、<b>リンクアグリゲーション</b>、<b>VLAN</b>、<b>管理</b>（管理者ユーザー名・ファームウェアの版）。</li>
+  </ul>
+  <p>下のボタン：「構成図で見る」「複製」「よく使う機器に登録」「削除」。</p>
+</section>
+
+<!-- ===================================================== 07 部屋と間取り -->
+<section class="sec" id="rooms">
+  <h2><span class="no">07</span>部屋と間取り</h2>
+  <p><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-rooms"/></svg>部屋</span> の画面で、部屋の名前（候補から選べます）と階を登録します。階は「1F・2F・3F・B1・屋外」から選ぶか、「ほかの階を入力…」で「ロフト」なども。階は一戸建てで分けたいときだけで大丈夫です。</p>
+  <p>構成図の左上で「<b>間取り</b>」にすると、家の断面図のように、階ごと・部屋ごとに機器が並びます。</p>
+  <figure class="wide">
+    <div class="scroll"><svg class="dg" viewBox="0 0 600 270" role="img" aria-labelledby="f11t">
+      <title id="f11t">間取りの表示：2階建ての家の断面に部屋が並び、部屋をまたぐ線は廊下と壁際を通る</title>
+      <rect class="bg" width="600" height="270" rx="12"/>
+      <rect class="n-inf" x="238" y="10" width="124" height="26" rx="13"/><use href="#i-internet" class="gi cinv" x="248" y="15" width="16" height="16"/><text class="t11 b n-inf-t" x="268" y="28">インターネット</text>
+      <path d="M90 82 300 46 510 82" style="fill:none;stroke:var(--line-strong);stroke-width:3;stroke-linejoin:round"/>
+      <path d="M100 82v170M500 82v170M84 252h432M100 166h400" style="stroke:var(--line-strong);stroke-width:3;fill:none"/>
+      <text class="t16 xb fa" x="40" y="128">2F</text><text class="t16 xb fa" x="40" y="214">1F</text>
+      <rect class="room" x="112" y="94" width="120" height="62" rx="8"/><rect class="tape" x="120" y="88" width="36" height="14" rx="3"/><text class="t11 b tapet" x="124" y="99">書斎</text>
+      <rect class="n-end" x="122" y="116" width="96" height="26" rx="13"/><text class="t11 b" x="134" y="133">書斎PC</text>
+      <rect class="room" x="244" y="94" width="120" height="62" rx="8"/><rect class="tape" x="252" y="88" width="36" height="14" rx="3"/><text class="t11 b tapet" x="256" y="99">寝室</text>
+      <rect class="n-inf" x="254" y="116" width="96" height="26" rx="13"/><text class="t11 b n-inf-t" x="266" y="133">中継器</text>
+      <rect class="room" x="112" y="178" width="200" height="64" rx="8"/><rect class="tape" x="120" y="172" width="58" height="14" rx="3"/><text class="t11 b tapet" x="124" y="183">リビング</text>
+      <rect class="n-inf" x="120" y="200" width="104" height="26" rx="13"/><text class="t11 b n-inf-t" x="130" y="217">Wi-Fiルーター</text>
+      <rect class="n-end" x="230" y="200" width="72" height="26" rx="13"/><text class="t11 b" x="242" y="217">テレビ</text>
+      <rect class="room" x="380" y="178" width="110" height="64" rx="8"/><rect class="tape" x="388" y="172" width="36" height="14" rx="3"/><text class="t11 b tapet" x="392" y="183">納戸</text>
+      <rect class="n-inf" x="390" y="200" width="90" height="26" rx="13"/><text class="t11 b n-inf-t" x="402" y="217">ONU</text>
+      <!-- 配線のルート -->
+      <path class="fib" d="M300 36v4" style="stroke-width:3"/>
+      <path d="M300 36V60h194v112h-20v28" style="fill:none;stroke:var(--m-fiber);stroke-width:2.6;opacity:.9"/>
+      <path d="M390 213h-16v-43H106v43h14" style="fill:none;stroke:var(--m-lan);stroke-width:2.4"/>
+      <path d="M218 129h8v31H110v53h10" style="fill:none;stroke:var(--m-lan);stroke-width:2.4;opacity:.7"/>
+      <text class="t11 mu" x="372" y="266">部屋をまたぐ線は、廊下と壁際を通ります</text>
+    </svg></div>
+    <figcaption>数字の階（1F・2階・B1 など）が2つ以上あると屋根つきの家の形になります。階を「屋外」「庭」「ベランダ」などにした部屋は家の外に、「ロフト」「屋根裏」にした部屋は最上段に並びます。インターネットは家の外（上）に置かれ、部屋には入れられません。</figcaption>
+  </figure>
+  <ul>
+    <li>間取りでは、機器は部屋の枠の中に<b>自動で</b>並びます（位置は自由に決められません）。機器をほかの部屋の枠へドラッグすると、その部屋に移ります。</li>
+    <li>Wi-Fiの線は、機器を選んだときだけ表示します。</li>
+    <li>部屋の名札を押すと、名前・階・並び順（左から何番目か）を変えられます。空の部屋には「＋ ここに機器を追加」が出ます。</li>
+    <li>部屋の画面の「部屋未設定」から「まとめて部屋を決める」で整理できます（パソコンでは部屋のカードへドラッグでも）。部屋を削除すると、中の機器は「部屋未設定」になります。</li>
+    <li>間取りでは、枠・メモ、並び方の保存、<kbd>Ctrl</kbd>+<kbd>A</kbd> や矢印キーでの移動は使えません（「つながり」で使えます）。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 08 機器の一覧 -->
+<section class="sec" id="devices">
+  <h2><span class="no">08</span>機器の一覧と表で編集</h2>
+  <ul>
+    <li><b>検索</b>：名前・IP・部屋・メーカーなどで探せます。ひらがなとカタカナは区別せず、「固定」「自動」「wifi」「有線」「vlan10」、接続先の名前でも。スペースで区切ると「どちらも含む」で絞り込みます。<kbd>/</kbd> で検索欄へ。</li>
+    <li><b>並べ方</b>：部屋・グループ・接続先・名前・IP。見出しを押すとたためます。</li>
+    <li><b>絞り込み</b>：「ネットワーク」「パソコン・スマホ」などの種類、グループ、そして「部屋未設定」「グループなし」「つながりなし」などの<b>まだ整理していない機器</b>。後の3つで絞り込むと「まとめて設定」ボタンが出ます。</li>
+    <li><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>選ぶ</span>：何台か選んで、グループ・部屋・状態・種類・接続先・VLANをまとめて変更、または削除（4台以上を消すときは確認が出ます）。</li>
+    <li><span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></span> の中：「ポートの割り当て」（ルーター・ハブごとの口の使い方の一覧）、「ルーターの一覧と照合」、「グループを管理」、「よく使う機器」、「一覧をCSVで書き出す」。</li>
+  </ul>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-table"/></svg>表で編集（パソコン）</h3>
+  <figure class="wide">
+    <div class="scroll"><svg class="dg" viewBox="0 0 600 150" role="img" aria-labelledby="f12t">
+      <title id="f12t">表で編集：表計算ソフトのようにTabとEnterで入力</title>
+      <rect class="surf" x="1" y="1" width="598" height="148" rx="12"/>
+      <text x="16" y="24" class="t11 b mu">名前</text><text x="130" y="24" class="t11 b mu">種類</text><text x="250" y="24" class="t11 b mu">部屋</text><text x="336" y="24" class="t11 b mu">IPアドレス</text><text x="466" y="24" class="t11 b mu">決め方</text><text x="526" y="24" class="t11 b mu">接続先</text>
+      <path class="ln" d="M1 34h598M1 66h598M1 98h598"/>
+      <text class="t12" x="16" y="55">書斎PC</text><text class="t12" x="130" y="55">デスクトップPC</text><text class="t12" x="250" y="55">2F 書斎</text>
+      <rect x="330" y="40" width="122" height="22" rx="5" style="fill:var(--surface);stroke:var(--sel);stroke-width:2"/><text class="t12 mo" x="338" y="56">192.168.1.120</text>
+      <text class="t12" x="466" y="55">固定</text><text class="t12" x="526" y="55">スイッチ</text>
+      <text class="t12" x="16" y="87">プリンター</text><text class="t12" x="130" y="87">プリンター</text><text class="t12" x="250" y="87">2F 書斎</text><text class="t12 mo" x="338" y="87">192.168.1.130</text><text class="t12" x="466" y="87">固定</text><text class="t12" x="526" y="87">中継器</text>
+      <text class="t12 mu" x="16" y="122">機器の名前を入れて Enter で追加…</text>
+      <text class="t11 b end" x="586" y="140" style="fill:var(--m-lan)">Tab で右へ・Enter で下へ</text>
+    </svg></div>
+    <figcaption>機器の画面の「表で編集」に切り替えると、表計算ソフトのように入力できます。<kbd>Tab</kbd> で右、<kbd>Enter</kbd> で下、<kbd>Shift</kbd>+<kbd>Enter</kbd> で上、<kbd>Esc</kbd> で元の値に戻します。最後の行に名前を入れて <kbd>Enter</kbd> で、続けて登録できます。</figcaption>
+  </figure>
+  <p class="note">パソコンでは、一覧の機器を部屋・グループ・接続先の見出しへドラッグして移せます（グループは <kbd>Ctrl</kbd> か <kbd>Alt</kbd> を押しながらだと、元のグループにも残します）。</p>
+</section>
+
+<!-- ===================================================== 09 バックアップ -->
+<section class="sec" id="backup">
+  <h2><span class="no">09</span>バックアップ（これだけは覚えておく）</h2>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 196" role="img" aria-labelledby="f17t">
+      <title id="f17t">記録はこのブラウザに自動で保存され、ファイルへの書き出しと読み込みでバックアップする</title>
+      <rect class="bg" width="600" height="196" rx="12"/>
+      <g transform="translate(24 40)">
+        <rect class="surf" width="200" height="130" rx="14"/>
+        <use href="#i-devices" class="gi ci" x="16" y="16" width="26" height="26"/><text class="t13 b" x="50" y="28">このスマホ・パソコン</text><text class="t11 mu" x="50" y="44">のブラウザの中</text>
+        <rect class="surf2" x="16" y="58" width="168" height="56" rx="10"/><use href="#i-check" class="gi" style="color:var(--ok)" x="26" y="68" width="18" height="18"/><text class="t12 b" x="50" y="82">自動で保存</text><text class="t11 mu" x="26" y="104">変更のたびに、すぐ</text>
+      </g>
+      <path d="M232 92h126" style="stroke:var(--m-lan);stroke-width:2.4" marker-end="url(#arrSel)"/><text class="t12 b mid" x="295" y="82" style="fill:var(--m-lan)">データを書き出す</text>
+      <path d="M358 126H232" style="stroke:var(--muted);stroke-width:2.4" marker-end="url(#arr)"/><text class="t12 b mid mu" x="295" y="146">データを読み込む</text>
+      <g transform="translate(366 40)">
+        <rect class="surf" width="210" height="130" rx="14"/>
+        <use href="#i-file" class="gi ci" x="16" y="16" width="26" height="26"/><text class="t13 b" x="50" y="34">JSONファイル</text>
+        <text class="t11 mo mu" x="16" y="62">homenet-atlas-日時.json</text>
+        <text class="t11 mu" x="16" y="86">パソコン・クラウドの保管場所・</text>
+        <text class="t11 mu" x="16" y="104">USBメモリなどに残す</text>
+      </g>
+      <g transform="translate(250 12)"><use href="#i-internet" class="gi cm" x="0" y="0" width="22" height="22"/><path class="cross" d="M2 2l18 18" style="stroke-width:2.4"/><text class="t11 mu" x="28" y="15">記録をインターネットへは送りません</text></g>
+    </svg>
+    </div>
+  </figure>
+  <div class="box warn"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><p>記録は<b>このブラウザの中だけ</b>にあります。ブラウザの「サイトデータの削除」や、端末の初期化・故障で消えてしまうので、<span class="ui">設定</span> › 「バックアップと書き出し」 › 「データを書き出す」でときどきファイルに残してください。30日以上書き出していないと、設定の画面で知らせます。</p></div>
+  <ul>
+    <li>書き出すのは<b>いま開いているネットワーク</b>の記録（よく使う機器も含む）です。実家・事務所など<a href="#networks">ほかのネットワーク</a>は、切り替えてからそれぞれ書き出してください。デザインなどの表示の設定は入りません。</li>
+    <li>戻すときは、同じ場所の「データを読み込む」でファイルを選びます（→ <a href="#export-import">読み込み</a>）。別の端末への引っ越しも同じ手順です。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 10 IPアドレス -->
+<section class="sec" id="ip">
+  <h2><span class="no">10</span>IPアドレスのしくみとIP台帳</h2>
+  <p>家の中の機器には、たいてい <span class="mono">192.168.1.○</span> のような番号（IPアドレス）が付いています。前の3つ（<span class="mono">192.168.1</span>）が<b>ネットワーク</b>、最後の数字（1〜254）が<b>機器ごとの番号</b>です。ルーターによって <span class="mono">192.168.0.○</span> や <span class="mono">192.168.11.○</span> など、前の部分が違うこともあります。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 176" role="img" aria-labelledby="f13t">
+      <title id="f13t">1から254までの番号のうち、ルーターが自動で割り当てる範囲と、固定に使う番号</title>
+      <rect class="bg" width="600" height="176" rx="12"/>
+      <text class="t13 b" x="20" y="26"><tspan class="mo">192.168.1.</tspan>○ <tspan class="mu" style="font-weight:600">の ○ に入る番号（1〜254）</tspan></text>
+      <path d="M27 58v-10h14" class="lns"/><text class="t11 b" x="46" y="52">.1 はルーター（ゲートウェイ）</text>
+      <rect x="20" y="62" width="560" height="38" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/>
+      <rect x="20" y="62" width="14" height="38" rx="7" class="dark"/>
+      <rect class="bar-dh" x="62" y="62" width="176" height="38"/>
+      <rect x="440" y="62" width="140" height="38" rx="8" style="fill:color-mix(in srgb, var(--ink) 18%, var(--surface));stroke:var(--line-strong)"/>
+      <text class="t11 mo mu" x="20" y="116">1</text><text class="t11 mo mu mid" x="62" y="116">20</text><text class="t11 mo mu mid" x="238" y="116">99</text><text class="t11 mo mu mid" x="440" y="116">200</text><text class="t11 mo mu end" x="580" y="116">254</text>
+      <path d="M150 100v24" class="lns"/><text class="t12 b mid" x="150" y="142">自動で割り当てる範囲（DHCP）</text><text class="t11 mu mid" x="150" y="160">スマホ・パソコンなど → 「自動」</text>
+      <path d="M340 100v24" class="lns"/><text class="t12 b mid" x="340" y="142">空き</text><text class="t11 mu mid" x="340" y="160">固定にも使えます</text>
+      <path d="M510 100v24" class="lns"/><text class="t12 b mid" x="510" y="142">固定にする機器の例</text><text class="t11 mu mid" x="510" y="160">プリンター・NAS → 「固定」</text>
+    </svg>
+    </div>
+    <figcaption>スマホなどはルーターが自動で番号を割り当てます（<b>自動</b>）。プリンターやNASのように番号を決めておく機器は<b>固定</b>にします。固定の番号は、<b>自動で割り当てる範囲の外</b>から選ぶのが安全です。範囲は家によって違います（図は .20〜.99 の例）。</figcaption>
+  </figure>
+  <p>自動で割り当てる範囲は、ルーターの管理画面の「<b>DHCPサーバー</b>」の設定で確認できます。<span class="ui">設定</span> › 「IPアドレス」 › 「ネットワークの範囲」の「<b>自動で割り当てる範囲</b>」の欄に入れると、空いている安全な番号を提案し、ぶつかりそうなときは知らせます。</p>
+
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-ipgrid"/></svg>IP台帳</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 196" role="img" aria-labelledby="f14t">
+      <title id="f14t">IP台帳のマス目と凡例</title>
+      <rect class="surf" x="1" y="1" width="598" height="194" rx="12"/>
+      <g transform="translate(46 18)">
+        <rect x="0" y="0" width="20" height="20" rx="4" style="fill:none;stroke:var(--line-strong);stroke-dasharray:3 2"/>
+        <rect x="23" y="0" width="20" height="20" rx="4" class="dark"/><text class="b darkt mid" x="33" y="14" style="font-size:9px">1</text><circle cx="40" cy="3" r="3.5" class="self"/>
+        <rect x="46" y="0" width="20" height="20" rx="4" class="dark"/><text class="b darkt mid" x="56" y="14" style="font-size:9px">2</text>
+        <rect x="69" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="92" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="115" y="0" width="20" height="20" rx="4" class="surf3"/>
+        <rect x="138" y="0" width="20" height="20" rx="4" style="fill:var(--faint)"/><text class="b mid" x="148" y="14" style="font-size:9px;fill:#fff">6</text>
+        <rect x="161" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="184" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="207" y="0" width="20" height="20" rx="4" class="surf3"/>
+        <rect x="230" y="0" width="20" height="20" rx="4" class="dark"/><text class="b darkt mid" x="240" y="14" style="font-size:9px">10</text>
+        <rect x="253" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="276" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="299" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="322" y="0" width="20" height="20" rx="4" class="surf3"/><rect x="345" y="0" width="20" height="20" rx="4" class="surf3"/>
+        <g transform="translate(0 23)">
+          <rect x="0" width="20" height="20" rx="4" class="surf3"/><rect x="23" width="20" height="20" rx="4" class="surf3"/><rect x="46" width="20" height="20" rx="4" class="surf3"/><rect x="69" width="20" height="20" rx="4" class="surf3"/>
+          <rect x="92" width="20" height="20" rx="4" class="stripe"/><rect x="115" width="20" height="20" rx="4" class="stripe"/><rect x="138" width="20" height="20" rx="4" class="stripe"/>
+          <rect x="161" width="20" height="20" rx="4" class="lanf"/><text class="b mid" x="171" y="14" style="font-size:9px;fill:#fff">23</text>
+          <rect x="184" width="20" height="20" rx="4" class="stripe"/><rect x="207" width="20" height="20" rx="4" class="stripe"/>
+          <rect x="230" width="20" height="20" rx="4" class="lanf"/><text class="b mid" x="240" y="14" style="font-size:9px;fill:#fff">26</text>
+          <rect x="253" width="20" height="20" rx="4" class="stripe"/><rect x="276" width="20" height="20" rx="4" class="stripe"/>
+          <rect x="299" width="20" height="20" rx="4" class="dangerf"/><text class="b mid" x="309" y="14" style="font-size:9px;fill:#fff">29</text>
+          <rect x="322" width="20" height="20" rx="4" class="stripe"/><rect x="345" width="20" height="20" rx="4" class="stripe"/>
+        </g>
+        <g transform="translate(0 46)">
+          <rect x="0" width="20" height="20" rx="4" class="stripe"/><rect x="23" width="20" height="20" rx="4" class="stripe"/><rect x="46" width="20" height="20" rx="4" class="lanf"/><text class="b mid" x="56" y="14" style="font-size:9px;fill:#fff">34</text><rect x="69" width="20" height="20" rx="4" class="stripe"/><rect x="92" width="20" height="20" rx="4" class="stripe"/><rect x="115" width="20" height="20" rx="4" class="stripe"/><rect x="138" width="20" height="20" rx="4" class="stripe"/><rect x="161" width="20" height="20" rx="4" class="stripe"/><rect x="184" width="20" height="20" rx="4" class="stripe"/><rect x="207" width="20" height="20" rx="4" class="stripe"/><rect x="230" width="20" height="20" rx="4" class="stripe"/><rect x="253" width="20" height="20" rx="4" class="stripe"/><rect x="276" width="20" height="20" rx="4" class="stripe"/><rect x="299" width="20" height="20" rx="4" class="stripe"/><rect x="322" width="20" height="20" rx="4" class="stripe"/><rect x="345" width="20" height="20" rx="4" class="stripe"/>
+        </g>
+        <text class="t11 mo mu end" x="-6" y="14">.0</text><text class="t11 mo mu end" x="-6" y="37">.16</text><text class="t11 mo mu end" x="-6" y="60">.32</text>
+        <text class="t11 mu" x="0" y="92">…（.255 まで16行）</text>
+      </g>
+      <g transform="translate(430 16)">
+        <rect width="14" height="14" rx="3" class="dark"/><text class="t12" x="22" y="12">固定</text>
+        <rect y="22" width="14" height="14" rx="3" class="lanf"/><text class="t12" x="22" y="34">自動</text>
+        <rect y="44" width="14" height="14" rx="3" style="fill:var(--faint)"/><text class="t12" x="22" y="56">決め方が未記録</text>
+        <rect y="66" width="14" height="14" rx="3" class="dangerf"/><text class="t12" x="22" y="78">要確認（重複など）</text>
+        <rect y="88" width="14" height="14" rx="3" class="surf3"/><text class="t12" x="22" y="100">空き</text>
+        <rect y="110" width="14" height="14" rx="3" class="stripe"/><text class="t12" x="22" y="122">自動で割り当てる範囲</text>
+        <rect y="132" width="14" height="14" rx="3" class="surf3"/><circle cx="12" cy="134" r="3.5" class="self"/><text class="t12" x="22" y="144">ゲートウェイ</text>
+        <rect y="154" width="14" height="14" rx="3" style="fill:none;stroke:var(--line-strong);stroke-dasharray:3 2"/><text class="t12" x="22" y="166">使えない番号（.0・.255）</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>16×16のマス目で .0〜.255 を表します。マスを押すと、その番号の機器がわかり、空いているマスからは「この番号で機器を追加」できます。上のカードで使用中・空き・自動で割り当てる範囲・ゲートウェイの数を、下の「番号順の一覧」（「空きも表示／使用中だけ」）で詳しく見られます。「IPアドレス未記録」の機器を押すと、IPの欄が開きます。CSVでも書き出せます。</figcaption>
+  </figure>
+</section>
+
+<!-- ===================================================== 11 ネットワークを分ける -->
+<section class="sec" id="ranges">
+  <h2><span class="no">11</span>ネットワークを分ける（ゲスト用・IoT用など）</h2>
+  <p>ゲスト用Wi-Fi・IoT機器用・2台目のルーターの先など、家の中で<b>ネットワーク</b>（<span class="mono">192.168.10.x</span> のような番号のまとまり）を分けているときは、<span class="ui">設定</span> › 「IPアドレス」 › 「<b>ネットワークの範囲</b>」に<b>6つまで</b>登録できます。ネットワークごとに名前と、自動で割り当てる範囲を入れられます。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 196" role="img" aria-labelledby="fst">
+      <title id="fst">設定の「ネットワークの範囲」の1行</title>
+      <rect class="bg" width="600" height="196" rx="12"/>
+      <text class="t13 xb" x="20" y="28">ネットワークの範囲 <tspan class="mu mo" style="font-weight:600">2/6</tspan></text>
+      <text class="t11 b mu" x="56" y="52">名前</text><text class="t11 b mu" x="206" y="52">ネットワーク</text><text class="t11 b mu" x="364" y="52">自動で割り当てる範囲</text>
+      <g transform="translate(20 60)">
+        <circle cx="12" cy="18" r="11" class="dark"/><text class="t11 b darkt mid" x="12" y="22">1</text>
+        <rect x="34" y="2" width="140" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mu" x="46" y="23">メイン</text>
+        <rect x="184" y="2" width="128" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mu" x="194" y="23">192.168.1</text><text class="t12 mo b" x="318" y="23">.x</text>
+        <text class="t12 mo b" x="340" y="23">.</text><rect x="348" y="2" width="50" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mid" x="373" y="23">20</text><text class="t12 b" x="404" y="23">〜 .</text><rect x="430" y="2" width="50" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mid" x="455" y="23">99</text>
+        <text class="t11 mu" x="34" y="52">メイン（登録済みのIPから自動判定：192.168.1.x）・機器 18台</text>
+      </g>
+      <g transform="translate(20 124)">
+        <circle cx="12" cy="18" r="11" class="surf3"/><text class="t11 b mid" x="12" y="22">2</text>
+        <rect x="34" y="2" width="140" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12" x="46" y="23">ゲスト</text>
+        <rect x="184" y="2" width="128" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo" x="194" y="23">192.168.10</text><text class="t12 mo b" x="318" y="23">.x</text>
+        <text class="t12 mo b" x="340" y="23">.</text><rect x="348" y="2" width="50" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mid" x="373" y="23">100</text><text class="t12 b" x="404" y="23">〜 .</text><rect x="430" y="2" width="50" height="32" rx="8" style="fill:var(--surface);stroke:var(--line-strong)"/><text class="t12 mo mid" x="455" y="23">150</text>
+        <use href="#i-trash" class="gi cm" x="500" y="10" width="18" height="18"/>
+        <text class="t11 mu" x="34" y="52">まだ機器はありません</text>
+      </g>
+      <g class="call"><circle cx="110" cy="54" r="10"/><text x="110" y="54">1</text></g>
+      <g class="call"><circle cx="290" cy="54" r="10"/><text x="290" y="54">2</text></g>
+      <g class="call"><circle cx="512" cy="54" r="10"/><text x="512" y="54">3</text></g>
+      <g class="call"><circle cx="548" cy="143" r="10"/><text x="548" y="143">4</text></g>
+    </svg>
+    </div>
+    <ol class="callouts">
+      <li><b>1</b><span><b>名前</b>：「ゲスト」「IoT」など。同じネットワークのVLANがあれば、その名前を使います。</span></li>
+      <li><b>2</b><span><b>ネットワーク</b>：前の3つの数字。1行目（メイン）は空欄なら、登録した機器のIPから自動で判定します。「192.168.10.0/24」のように入れても大丈夫です。</span></li>
+      <li><b>3</b><span><b>自動で割り当てる範囲</b>：ルーターの「DHCPサーバー」の開始と終了の番号。</span></li>
+      <li><b>4</b><span>削除（メインは消せません）。下の「範囲を追加」で増やせます。機器やVLANに未登録のネットワークが出てくると「＋ 192.168.20.x」のボタンでワンタッチで追加できます。</span></li>
+    </ol>
+  </figure>
+  <ul>
+    <li>IP台帳は、上のボタンでネットワークごとに切り替えて見られます（まだ機器がないネットワークも表示）。</li>
+    <li>空いているIPの提案と、「自動で割り当てる範囲の中に固定IPがある」の確認は、ネットワークごとに行います。機器の詳細には、ほかのネットワークの空きも並びます。</li>
+    <li>ルーターの詳細設定の「割り当てる範囲」は、そのルーターのIPが入っているネットワークの設定と同じものです（どちらで変えても同じ）。</li>
+    <li>ネットワークを2つ以上登録すると、どれにも入っていないIPを診断で知らせます（打ち間違いの発見に）。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 12 構成図を整える -->
+<section class="sec" id="map">
+  <h2><span class="no">12</span>構成図を見やすく整える</h2>
+  <div class="cards">
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-layout"/></svg></span>自動整列<kbd>L</kbd></h4><p>つながりに沿って並べ直します。向きは「横に広げる／縦に広げる」。枠は中の機器に合わせて動き、メモは近くの機器についていきます。</p></div>
+    <div class="card" id="arrs"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-bookmark"/></svg></span>並び方</h4><p>手で整えた配置に名前を付けて保存・呼び出し（構成図・配線それぞれ12個まで）。あとから足した機器は、呼び出してもいまの位置のまま。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg></span>全体を表示<kbd>F</kbd></h4><p>図全体が画面に収まるように。<kbd>0</kbd> で100%。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></span>位置の固定<span class="nw"><kbd>Ctrl</kbd>+<kbd>L</kbd></span></h4><p>ドラッグや矢印キーで動かなくなります。自動整列では、固定した枠・メモは動きません。固定した機器が動くときは、並べ直してよいか先に確認します。</p></div>
+  </div>
+  <p class="note">自動整列で崩したくない配置は、先に「並び方」で保存しておくと、いつでも戻せます（「元に戻す」でも戻せます）。</p>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-frame"/></svg>枠・メモ・グループのたたみ</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 190" role="img" aria-labelledby="f8t">
+      <title id="f8t">枠で囲んだ機器、メモ、たたんだグループ</title>
+      <rect class="bg" width="600" height="190" rx="12"/><rect class="dots" width="600" height="190" rx="12"/>
+      <rect class="frame" x="18" y="30" width="190" height="140" rx="10"/><rect class="framelab" x="28" y="20" width="96" height="20" rx="10"/><text class="t11 b framelabt" x="38" y="34">テレビまわり</text>
+      <rect class="n-end" x="36" y="58" width="150" height="30" rx="15"/><use href="#i-tv" class="gi ci" x="46" y="65" width="16" height="16"/><text class="t12 b" x="68" y="78">リビングのテレビ</text>
+      <rect class="n-end" x="36" y="98" width="150" height="30" rx="15"/><use href="#i-media" class="gi ci" x="46" y="105" width="16" height="16"/><text class="t12 b" x="68" y="118">レコーダー</text>
+      <rect class="n-end" x="36" y="138" width="150" height="30" rx="15"/><use href="#i-game" class="gi ci" x="46" y="145" width="16" height="16"/><text class="t12 b" x="68" y="158">ゲーム機</text>
+      <text class="t12 b mid" x="113" y="186" style="fill:var(--muted)">枠</text>
+      <rect class="notebox" x="232" y="54" width="150" height="66" rx="6"/><text class="t12 b" x="244" y="76">回線のトラブル時は</text><text class="t12 b" x="244" y="96">ONU → ルーターの</text><text class="t12 b" x="244" y="112">順に再起動</text>
+      <text class="t12 b mid" x="307" y="186" style="fill:var(--muted)">メモ</text>
+      <rect x="418" y="50" width="168" height="44" rx="22" style="fill:var(--node-bg);stroke:var(--node-border)"/><rect x="412" y="44" width="168" height="44" rx="22" style="fill:var(--node-bg);stroke:var(--node-border)"/>
+      <use href="#i-g-family" class="gi ci" x="424" y="57" width="18" height="18"/><text class="t12 b" x="448" y="63">家族のスマホ</text><text class="t11 mu" x="448" y="78">スマホ・タブレット</text>
+      <rect x="540" y="56" width="32" height="20" rx="10" class="dark"/><text class="t11 b darkt mid" x="556" y="70">×4</text>
+      <text class="t11 mu mid" x="496" y="118">ダブルクリックでひらく</text>
+      <text class="t12 b mid" x="496" y="186" style="fill:var(--muted)">たたんだグループ</text>
+    </svg>
+    </div>
+  </figure>
+  <ul>
+    <li><b>枠</b>：機器をまとめて囲む四角。選んだものを <kbd>Ctrl</kbd>+<kbd>G</kbd> で囲めます。枠を動かすと中の機器も一緒に動き、右下のつまみで大きさを変えられます。右クリックで色の変更と「中の機器をまとめて選ぶ」。配線の画面では「ラック」「情報分電盤」「テレビまわり」「机の下」の名前つきの枠も置けます。</li>
+    <li><b>メモ</b>：<kbd>T</kbd> で置き、<kbd>Ctrl</kbd>+<kbd>Enter</kbd> か外を押して確定。空のメモは消えます。色と文字の大きさ（小・中・大）を変えられます。</li>
+    <li>枠とメモは「つながり」と「配線」の図に、それぞれ別に置けます（間取りには出ません）。</li>
+    <li><b>たたむ</b>：グループの機器（ネットワーク機器以外）が2台以上あると、1つの束にたためます。グループの画面の「たたむ／ひらく」か、束をダブルクリック。</li>
+  </ul>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-al-left"/></svg>選ぶ・そろえる・コピー</h3>
+  <ul>
+    <li><kbd>Shift</kbd>+クリックで複数、<kbd>Shift</kbd>+ドラッグで範囲を選べます。右クリック →「整列」で、左・中央・右・上・下をそろえる、等間隔、一列に並べる。</li>
+    <li>ドラッグすると、ほかの機器の端や中心にガイド線でくっつき、方眼にもそろいます。<kbd>Alt</kbd> を押しながらだと自由に置けます。矢印キーで少し、<kbd>Shift</kbd>+矢印で大きく動かせます。</li>
+    <li><kbd>Ctrl</kbd>+<kbd>C</kbd>／<kbd>V</kbd> でコピー・貼り付け（貼り付けた機器のIPとMACは空にします）。コピーした機器は名前・IP・MACの表としても貼り付けられるので、表計算ソフトにそのまま貼れます。<kbd>Ctrl</kbd>+<kbd>D</kbd> で複製（固定IPの機器は次の空き番号に）。</li>
+    <li>機器の右クリック →「見た目」→「<b>色ラベル</b>」で、機器に色の印（何台かまとめても）。「IPアドレスをコピー」もあります。</li>
+  </ul>
+  <h3 id="viewpanel"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>「表示」の中身</h3>
+  <p>図の右上の <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>表示</span> には3つのタブがあります。</p>
+  <ul>
+    <li><b>絞り込み</b>：線の種類ごとの表示、「ネットワーク機器だけ表示」（パソコンや家電を隠して骨組みだけに）、「導入予定の機器を隠す」、VLANを色で表示・「VLAN○だけ強調」。隠しているときは図の上に「N台を非表示中」と出ます。</li>
+    <li><b>見た目</b>：画面のデザイン、図のスタイル（標準・青図・モノクロ）、線の形（直角・直線・曲線）、機器名の下に出す情報（IP・部屋・種類）、自動整列の向き、通信のアニメーション、ミニマップ、パーツ、方眼・ガイド線。配線の画面では「配線・見た目」になります。</li>
+    <li><b>レイヤー</b>：「予定」「実家」などを透明なシートのように重ねて表示・ロック（→ <a href="#layers">レイヤー</a>）。</li>
+  </ul>
+  <p>右上の <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></span>（<kbd>Ctrl</kbd>+<kbd>F</kbd>）は「<b>探す・書き出す</b>」。名前・IP・MAC・種類・部屋・メーカー・型番・VLAN・グループで機器を、文字で図のメモや枠を探して、その場所へ移動できます（機器の詳細のメモの中身は、機器の画面の検索で探せます）。</p>
+</section>
+
+<!-- ===================================================== 13 配線 -->
+<section class="sec" id="wire">
+  <h2><span class="no">13</span>配線（口とケーブル）</h2>
+  <p>左のメニューの <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-cable"/></svg>配線</span>（<kbd>W</kbd>）では、機器を前面パネルの絵で表し、<b>どの口（ポート）にどのケーブルが挿さっているか</b>まで記録できます。最初は、つながりからケーブルの絵を自動で描きます。</p>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 640 330" role="img" aria-labelledby="f9t">
+      <title id="f9t">配線の画面：口から口へケーブルをドラッグ、プラグをつかんで挿し替え、何もない所に仮置き</title>
+      <rect class="bg" width="640" height="330" rx="12"/><rect class="dots" width="640" height="330" rx="12"/>
+      <rect class="pl" x="30" y="40" width="250" height="64" rx="8"/>
+      <path d="M70 40V18M110 40V14M150 40V18" style="stroke:var(--line-strong);stroke-width:4;stroke-linecap:round"/>
+      <use href="#i-wifi-router" class="gi" style="color:#364250" x="40" y="46" width="14" height="14"/><text class="t11 b" x="58" y="57" style="fill:#17202B">Wi-Fiルーター</text><circle cx="268" cy="52" r="3" class="led"/>
+      <g transform="translate(40 64)">
+        <rect class="pcell" width="34" height="32" rx="4"/><text class="b mid" x="17" y="11" style="fill:#5D6876;font-size:9px">WAN</text><rect class="port" x="8" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell" x="50" width="34" height="32" rx="4"/><text class="mid b" x="67" y="11" style="fill:#5D6876;font-size:9px">1</text><rect class="port" x="58" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell" x="90" width="34" height="32" rx="4"/><text class="mid b" x="107" y="11" style="fill:#5D6876;font-size:9px">2</text><rect class="port" x="98" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell" x="130" width="34" height="32" rx="4"/><text class="mid b" x="147" y="11" style="fill:#5D6876;font-size:9px">3</text><rect class="port" x="138" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell" x="170" width="34" height="32" rx="4"/><text class="mid b" x="187" y="11" style="fill:#5D6876;font-size:9px">4</text><rect class="port" x="178" y="14" width="18" height="14" rx="2"/>
+      </g>
+      <rect class="pd" x="30" y="170" width="330" height="64" rx="8"/>
+      <circle cx="44" cy="182" r="3" class="led"/><text class="b end" x="352" y="186" style="fill:#E7ECF1;font-size:10px">スイッチングハブ</text>
+      <g transform="translate(40 194)">
+        <rect class="pcell-d" width="34" height="32" rx="4"/><text class="mid b" x="17" y="11" style="fill:#A9B4C1;font-size:9px">1</text><rect class="port" x="8" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="40" width="34" height="32" rx="4"/><text class="mid b" x="57" y="11" style="fill:#A9B4C1;font-size:9px">2</text><rect class="port" x="48" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="80" width="34" height="32" rx="4"/><text class="mid b" x="97" y="11" style="fill:#A9B4C1;font-size:9px">3</text><rect class="port" x="88" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="120" width="34" height="32" rx="4"/><text class="mid b" x="137" y="11" style="fill:#A9B4C1;font-size:9px">4</text><rect class="port" x="128" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="160" width="34" height="32" rx="4"/><text class="mid b" x="177" y="11" style="fill:#A9B4C1;font-size:9px">5</text><rect class="port" x="168" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="200" width="34" height="32" rx="4"/><text class="mid b" x="217" y="11" style="fill:#A9B4C1;font-size:9px">6</text><rect class="port" x="208" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="240" width="34" height="32" rx="4"/><text class="mid b" x="257" y="11" style="fill:#A9B4C1;font-size:9px">7</text><rect class="port" x="248" y="14" width="18" height="14" rx="2"/>
+        <rect class="pcell-d" x="280" width="34" height="32" rx="4"/><text class="mid b" x="297" y="11" style="fill:#A9B4C1;font-size:9px">8</text><rect class="port" x="288" y="14" width="18" height="14" rx="2"/>
+      </g>
+      <!-- 端末（書斎PC） -->
+      <rect class="pl" x="200" y="272" width="120" height="46" rx="8"/><use href="#i-pc" class="gi" style="color:#364250" x="208" y="280" width="13" height="13"/><text class="t11 b" x="226" y="291" style="fill:#17202B">書斎PC</text>
+      <rect class="pcell" x="276" y="280" width="30" height="30" rx="3"/><rect class="port" x="283" y="290" width="16" height="12" rx="2"/>
+      <!-- ケーブル：ルーター1 → ハブ1 -->
+      <path class="cab-b" d="M107 92C107 140 57 150 57 210"/>
+      <rect class="plug-b" x="100" y="84" width="14" height="12" rx="2"/><rect class="plug-b" x="50" y="206" width="14" height="12" rx="2"/>
+      <circle cx="82" cy="150" r="5" style="fill:var(--surface);stroke:#2F7BEA;stroke-width:2"/>
+      <!-- 挿し替え：書斎PCのケーブルの、ハブ側のプラグを3番から6番へ -->
+      <path class="cab-y" d="M291 294C291 262 257 252 257 216"/><rect class="plug-y" x="284" y="290" width="14" height="10" rx="2"/>
+      <rect x="130" y="204" width="14" height="12" rx="2" style="fill:none;stroke:#E9B000;stroke-width:1.6;stroke-dasharray:3 2"/>
+      <path d="M137 200C137 160 257 160 257 196" style="fill:none;stroke:var(--sel);stroke-width:2" marker-end="url(#arr)"/>
+      <rect class="plug-y" x="250" y="206" width="14" height="12" rx="2"/>
+      <rect x="246" y="202" width="22" height="20" rx="5" style="fill:none;stroke:var(--sel);stroke-width:2.4"/>
+      <path class="hand" d="M260 214l3 14 4-4 4 8 3-1.5-4-8 6-1z"/>
+      <!-- 仮置き：4番のケーブル -->
+      <path class="cab-g" d="M177 210C177 250 120 268 100 270"/><rect class="plug-g" x="88" y="264" width="14" height="12" rx="2"/><rect x="84" y="260" width="22" height="20" rx="5" style="fill:none;stroke:var(--sel);stroke-width:1.6;stroke-dasharray:3 3"/>
+      <g class="call"><circle cx="128" cy="134" r="11"/><text x="128" y="134">1</text></g>
+      <g class="call"><circle cx="66" cy="150" r="11"/><text x="66" y="150">2</text></g>
+      <g class="call"><circle cx="196" cy="154" r="11"/><text x="196" y="154">3</text></g>
+      <g class="call"><circle cx="70" cy="282" r="11"/><text x="70" y="282">4</text></g>
+      <g class="call"><circle cx="234" cy="118" r="11"/><text x="234" y="118">5</text></g>
+      <g transform="translate(390 40)">
+        <rect class="surf" width="226" height="262" rx="12"/>
+        <text class="t12 b" x="14" y="26">ケーブルを選ぶと</text>
+        <text class="t12 mu" x="14" y="46">下のバーで変えられます</text>
+        <g transform="translate(14 60)">
+          <rect class="surf2" width="60" height="26" rx="8"/><text class="t12 b mid" x="30" y="17">色</text>
+          <rect class="surf2" x="66" width="60" height="26" rx="8"/><text class="t12 b mid" x="96" y="17">太さ</text>
+          <rect class="surf2" x="132" width="64" height="26" rx="8"/><text class="t12 b mid" x="164" y="17">たるみ</text>
+        </g>
+        <g transform="translate(14 104)">
+          <path class="cab-b" d="M4 8h36"/><path class="cab-y" d="M52 8h36"/><path class="cab-g" d="M100 8h36"/><path class="cab-k" d="M148 8h36"/>
+          <text class="t11 mu" x="0" y="36">色は自動のほか10色。太さは細い・</text>
+          <text class="t11 mu" x="0" y="54">ふつう・太い、たるみは4段階</text>
+          <text class="t11 mu" x="0" y="80">線の詳細で、ケーブルの種類</text>
+          <text class="t11 mu" x="0" y="98">（Cat5〜Cat8・フラット・光LC/SC）</text>
+          <text class="t11 mu" x="0" y="124">上のバーの「色分け」で、部屋・</text>
+          <text class="t11 mu" x="0" y="142">VLAN・速度・種類ごとの色にも</text>
+        </g>
+      </g>
+    </svg>
+    </div>
+    <ol class="callouts">
+      <li><b>1</b><span><b>口から口へドラッグ</b>するとケーブルがつながります。機器の本体の上で離すと、空いている最初の口へ。</span></li>
+      <li><b>2</b><span>ケーブルの途中をつまむと<b>経由点</b>ができ、取り回しを変えられます。ダブルクリックで消去、「戻す」で元どおり。</span></li>
+      <li><b>3</b><span>挿さっている<b>プラグをつかんで</b>別の口へ動かすと、挿し替え。</span></li>
+      <li><b>4</b><span>何もない所で離すと、プラグを抜いて<b>仮置き</b>。あとでドラッグして口に挿せます。</span></li>
+      <li><b>5</b><span>口をダブルクリックすると<b>ポート画面</b>。口の速さ・端子の形・PoE・メモなどを設定。</span></li>
+    </ol>
+  </figure>
+  <ul>
+    <li><b>上のバー</b>：「ポート一覧」（口のある機器の一覧。押すとすぐポート画面へ）、「色分け」（1本ずつ・部屋・グループ・VLAN・速度・ケーブルの種類。凡例も切り替わります）、通信のアニメーション。</li>
+    <li><b>自動整列</b>（<kbd>L</kbd>）は、配線の画面では機器を種類ごとの段（回線 → ルーター → ハブ・AP → NAS・サーバー → 有線の機器 → 無線だけの機器）に並べます（構成図の並びとは別）。</li>
+    <li>空いている口を右クリック（長押し）→「<b>ここに機器をつなぐ…</b>」で、その口に挿した状態の新しい機器を追加できます。</li>
+    <li>機器の右クリックで「本体の色」（自動・黒・白・シルバー）、「口の並び」、「WANの口」も変えられます。</li>
+    <li>「表示」→「配線・見た目」：背景（方眼・有孔ボード・木の机・無地）、ケーブルの札（プラグの横に「→ つながる先」）、Wi-Fiのつながりも表示（ふだんWi-Fiだけの機器は出ません）、<b>ケーブルの集計</b>（種類と色ごとの本数）、<b>ケーブルの札を印刷</b>。</li>
+  </ul>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-ports"/></svg>ポート画面でできること</h3>
+  <ul>
+    <li>LANポートの数（2/4/5/8/16/24 口など）、WANの口の数（1つ／2つ）、口の並び（1段／2段。13口からは自動で2段）。</li>
+    <li>口ごとの速さ（100M〜10G）、端子の形（LAN／SFP／コンボ／光SC／USB）、PoE、使用不可、ラベル・メモ。「<b>口をまとめて設定</b>」で「9-10」「1-4,7」のように一度に。</li>
+    <li>ポート番号が決まっていないつながりは、「<b>空いている口へ自動で割り当て</b>」でまとめて挿せます。</li>
+    <li>2台の前面パネルを上下に並べる「<b>並べて配線</b>」で、口を1つずつ押してつなぐこともできます。</li>
+  </ul>
+  <h3 id="wire-outlet"><svg class="ic" aria-hidden="true"><use href="#i-outlet"/></svg>LANコンセント（壁の中の配線）</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 210" role="img" aria-labelledby="f10t">
+      <title id="f10t">LANコンセントは、部屋側の差し込み口と壁の中のケーブルが番号ごとにつながっている</title>
+      <rect class="bg" width="600" height="210" rx="12"/>
+      <rect class="wall" x="270" y="16" width="60" height="168" rx="4"/><text class="t11 b mid mu" x="300" y="34">壁</text>
+      <text class="t12 b mid" x="140" y="34">書斎（部屋側＝表）</text><text class="t12 b mid" x="460" y="34">壁の中（裏）→ 納戸へ</text>
+      <rect class="pl" x="236" y="60" width="44" height="100" rx="6"/><rect class="port" x="248" y="76" width="20" height="16" rx="2"/><rect class="port" x="248" y="126" width="20" height="16" rx="2"/>
+      <text class="t11 b mid" x="258" y="108" style="fill:#5D6876">1</text><text class="t11 b mid" x="258" y="158" style="fill:#5D6876">2</text>
+      <path d="M268 84h66M268 134h66" style="stroke:var(--m-lan);stroke-width:2;stroke-dasharray:5 4"/>
+      <rect class="pl" x="320" y="60" width="44" height="100" rx="6"/><rect class="port" x="332" y="76" width="20" height="16" rx="2"/><rect class="port" x="332" y="126" width="20" height="16" rx="2"/>
+      <path class="cab-b" d="M248 84H170"/><rect class="plug-b" x="236" y="78" width="14" height="12" rx="2"/>
+      <rect class="n-end" x="60" y="68" width="110" height="32" rx="16"/><use href="#i-pc" class="gi ci" x="70" y="76" width="16" height="16"/><text class="t12 b" x="92" y="89">書斎PC</text>
+      <path class="cab-k" d="M352 84H450"/><rect class="plug-k" x="350" y="78" width="14" height="12" rx="2"/>
+      <rect class="n-inf" x="450" y="68" width="138" height="32" rx="16"/><use href="#i-switch" class="gi cinv" x="460" y="76" width="16" height="16"/><text class="t12 b n-inf-t" x="482" y="89">納戸のハブ</text>
+      <text class="t11 mu mid" x="300" y="200">1番の表（部屋側）と1番の裏（壁の中）は、中でつながっています</text>
+    </svg>
+    </div>
+    <figcaption>LANコンセントは「LANコンセント」の種類で追加します。同じ部屋の機器は<b>差し込み口（表）</b>に、ほかの部屋の機器は<b>壁の中のケーブル（裏）</b>につながります。差し込み口の数（1〜6口）、規格（CAT5e〜CAT7）、並び、プレートの色を記録できます。</figcaption>
+  </figure>
+  <ul>
+    <li>表と裏が逆になったら、つないだ直後の知らせの「表と裏を入れ替え」、口の右クリック →「N番の表と裏を入れ替え」、またはポート画面の「番号ごとの中継」で直せます。</li>
+    <li>すでにある線を、登録済みのLANコンセントに通すときは、線の右クリック →「あいだに機器を入れる」→「『（コンセントの名前）』を通す」。空いている番号の表と裏を使います。</li>
+  </ul>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-cable"/></svg>束ねる・電気を送る・光</h3>
+  <ul>
+    <li><b>リンクアグリゲーション（LAG）</b>：線を右クリック →「束ねる本数（LAG）」で2本・4本。続いた口が本数ぶん必要です。</li>
+    <li><b>PoE</b>：機器の「PoE」で「給電できる／電気を受け取る」（機器の下に細い黄色の線）。ポート画面で口を「PoE（給電あり）」にすると、その口のケーブルに黄色の筋が入り、LANコンセントを通っても先まで伝わります。</li>
+    <li><b>SFP・光</b>：口の「端子の形」を SFP・コンボ・光（SC）に。光のケーブルは種類（光LC/SC）で記録します。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 14 診断と照合 -->
+<section class="sec" id="check">
+  <h2><span class="no">14</span>診断とルーターの一覧との照合</h2>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>診断</h3>
+  <p>記録の中から、つまずきやすい点を自動で見つけます。重要な「<b>注意</b>」があると上の帯に件数が出ます。小さな「<b>ヒント</b>」も含めた一覧は <span class="ui">設定</span> › 「ネットワーク」 › 「ネットワークの診断」で見られます。ほとんどの項目に<b>直すボタン</b>があり、機器の名前を押すと図のその機器へ移動します。</p>
+  <div class="box warn"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><p>直すボタンは、<b>このアプリの記録を書き換えるだけ</b>です。実際の機器やルーターの設定は変わらないので、必要なら、それぞれの設定画面で同じように変えてください。</p></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>見つけること</th><th>重さ</th><th>直し方の例</th></tr></thead>
+    <tbody>
+      <tr><td>IPアドレスの重なり</td><td>注意</td><td>片方を空いているIPにする／自動の機器は記録を消す</td></tr>
+      <tr><td>自動で割り当てる範囲の中の固定IP</td><td>注意</td><td>範囲の外の空いている番号にする</td></tr>
+      <tr><td>IPの形の誤り・.0 や .255</td><td>注意</td><td>IPを直す</td></tr>
+      <tr><td id="check-double">二重ルーター</td><td>注意</td><td>片方をブリッジ（AP）にした、と記録する／詳細設定を開く</td></tr>
+      <tr><td>LANポートが足りない</td><td>注意</td><td>スイッチングハブ（導入予定）を入れてつなぎ替える</td></tr>
+      <tr><td>同じ口を2本で使っている</td><td>注意</td><td>ポート画面を開く</td></tr>
+      <tr><td>どこにもつながっていない機器</td><td>注意</td><td>おすすめの接続先にまとめてつなぐ</td></tr>
+      <tr><td>MACアドレスの重なり</td><td>注意</td><td>MACを消す</td></tr>
+      <tr><td>インターネットまでたどれない機器</td><td>注意／ヒント</td><td>途中のつながりを確認（ネットワーク機器が含まれると注意）</td></tr>
+      <tr><td>口の数より大きい番号</td><td>ヒント</td><td>ポート画面を開く</td></tr>
+      <tr><td>VLANや登録したネットワークと違うIP</td><td>ヒント</td><td>空いているIPにする／ネットワークを追加する</td></tr>
+      <tr><td>同じ名前の機器</td><td>ヒント</td><td>番号をつけて区別する</td></tr>
+      <tr><td>自動で割り当てる範囲が未設定</td><td>ヒント</td><td>範囲を設定する</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">気にしなくてよい項目は「問題ない」で隠せます（「もう一度表示」で戻せます）。<b>二重ルーター</b>は、ルーターとして動く機器が2台つながっている状態で、ゲームの通信や外からのカメラの接続でつまずく原因になります。多くは、あとから足したWi-Fiルーターを「ブリッジ（APモード）」に切り替えて解消します（→ <a href="#patterns">よくある家の形</a>）。</p>
+
+  <h3 id="check-reconcile"><svg class="ic" aria-hidden="true"><use href="#i-paste"/></svg>ルーターの「接続中の端末」と照合</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 620 230" role="img" aria-labelledby="f16t">
+      <title id="f16t">ルーターの管理画面の一覧をコピーして貼り付けると、登録済み・未登録・一覧にない機器に分かれる</title>
+      <rect class="bg" width="620" height="230" rx="12"/>
+      <g transform="translate(16 20)">
+        <rect class="surf" width="198" height="190" rx="10"/><rect class="surf3" width="198" height="26" rx="10"/><rect class="surf3" y="14" width="198" height="12"/>
+        <text class="t11 b" x="10" y="17">ルーターの管理画面</text>
+        <text class="t11 b mu" x="10" y="44">接続中の端末・端末一覧など</text>
+        <rect x="8" y="54" width="182" height="20" rx="4" class="selsoft"/><text class="t11 mo" x="12" y="68">iPad  .1.41  …:5C:21</text>
+        <rect x="8" y="78" width="182" height="20" rx="4" class="selsoft"/><text class="t11 mo" x="12" y="92">TV    .1.30  …:9A:03</text>
+        <rect x="8" y="102" width="182" height="20" rx="4" class="selsoft"/><text class="t11 mo" x="12" y="116">Echo  .1.52  …:E1:7F</text>
+        <rect x="8" y="126" width="182" height="20" rx="4" class="selsoft"/><text class="t11 mo" x="12" y="140">PC    .1.120 …:44:B0</text>
+        <text class="t11 mu" x="10" y="174">全部選んでコピー</text>
+      </g>
+      <path d="M222 115h32" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/>
+      <g transform="translate(258 70)">
+        <rect class="surf" width="112" height="88" rx="10"/><use href="#i-paste" class="gi ci" x="40" y="14" width="32" height="32"/><text class="t12 b mid" x="56" y="66">貼り付けて</text><text class="t12 b mid" x="56" y="82">照合する</text>
+      </g>
+      <path d="M374 115h24" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/>
+      <g transform="translate(404 20)">
+        <rect class="surf" width="200" height="56" rx="10"/><circle cx="20" cy="28" r="9" class="okf"/><path d="M15.5 28l3 3 5-6" style="stroke:#fff;stroke-width:2;fill:none"/><text class="t12 b" x="38" y="24">記録を新しくする</text><text class="t11 mu" x="38" y="42">IPの変化・MACの追加</text>
+        <rect class="surf" y="66" width="200" height="56" rx="10"/><circle cx="20" cy="94" r="9" class="lanf"/><path d="M16 94h8M20 90v8" style="stroke:#fff;stroke-width:2"/><text class="t12 b" x="38" y="90">まだ登録していない機器</text><text class="t11 mu" x="38" y="108">チェックして追加</text>
+        <rect class="surf" y="132" width="200" height="56" rx="10"/><circle cx="20" cy="160" r="9" class="othf"/><path d="M16 160h8" style="stroke:#fff;stroke-width:2"/><text class="t12 b" x="38" y="156">一覧に見当たらない機器</text><text class="t11 mu" x="38" y="174">チェックで「使っていない」に</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption><span class="ui">設定</span> › 「ネットワーク」 › 「ルーターの一覧と照合」（または診断の下）。MACアドレス → IPアドレス → 名前の順に照らし合わせます。照合はこの端末の中だけで行い、どこにも送りません。<b>パスワードなどは貼り付けないでください。</b></figcaption>
+  </figure>
+  <ul>
+    <li>一覧は、ルーターの管理画面の「接続中の端末」「端末一覧」「DHCPクライアント一覧」などにあります（画面の「一覧の見つけ方」も参考に）。メッシュWi-Fiは、スマホのアプリの「接続中のデバイス」などからコピーできます。CSVやテキストのファイルを読み込むこともできます（2MBまで）。</li>
+    <li>結果の「まだ登録していない機器」は、つなぐ先と、つなぎ方（自動・有線LAN・Wi-Fi）を選んで追加できます。</li>
+    <li>「一覧に見当たらない機器」は、電源が切れているだけのこともあるので、迷ったらチェックせずそのままに。</li>
+    <li>照合で見つかった機器には、確認した日が記録されます（機器の詳細の「ルーターの一覧で最後に確認」）。</li>
+    <li>スマホは「プライベートアドレス」の機能で、MACアドレスがWi-Fiごとに変わることがあります。登録済みのはずの機器が「まだ登録していない」に出たら、名前やIPで確かめてください。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 15 VLAN・グループ・レイヤー -->
+<section class="sec" id="vlan">
+  <h2><span class="no">15</span>VLAN・グループ・レイヤー</h2>
+  <div class="cards">
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-vlan"/></svg></span>VLAN</h4><p>ネットワークを見えない仕切りで分けているときに（使っていなければ気にしなくて大丈夫です）。番号（1〜4094）・名前・ネットワーク（例：192.168.20.x）・色を登録し、機器の所属と、線で通すVLAN（タグ付き）を記録します。構成図では色と「V10」のような札で表示。「表示」の「VLAN○だけ強調」で、そのVLANの機器と線だけを目立たせます。</p></div>
+    <div class="card"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-group"/></svg></span>グループ</h4><p>「家族共用」「子ども」「仕事用」「スマート家電」など、部屋とは別のまとまり。1台を複数のグループに入れられ、機器の右下の色の印・強調表示・たたむに使えます。グループの画面では、しるし・色・入れる機器（種類でまとめて選べます）を決められます。</p></div>
+    <div class="card" id="layers"><h4><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg></span>レイヤー</h4><p>図を透明なシートのように重ねて、「予定」「実家」などを切り替え。目のマークで表示、錠のマークでロック（触っても選べない）。●のレイヤーに、これから追加するものが入ります。「…」→「このレイヤーだけ表示」も便利です。</p></div>
+  </div>
+  <p>どれも <span class="ui">設定</span> › 「整理」から開けます。グループは機器の詳細の「グループ」→「つくる」からも作れます（おすすめの名前も出ます）。</p>
+</section>
+
+<!-- ===================================================== 16 書き出し・印刷・読み込み -->
+<section class="sec" id="export">
+  <h2><span class="no">16</span>書き出し・印刷・読み込み</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>書き出し</th><th>中身・使いどころ</th></tr></thead>
+    <tbody>
+      <tr><td>JSON</td><td>このアプリ専用のバックアップファイル。いま開いているネットワークのすべての記録（→ <a href="#backup">バックアップ</a>）。</td></tr>
+      <tr><td>CSV</td><td>表計算ソフトで開ける機器の一覧（名前・種類・部屋・IP・MAC・接続先・詳細設定など）。IP台帳からは番号順のCSVも。</td></tr>
+      <tr><td>PNG</td><td>いま見ている図の画像。解像度（標準／2倍／3倍）を選べます。スマホでは「共有」でLINEやメールへそのまま。</td></tr>
+      <tr><td>SVG</td><td>拡大しても粗くならない画像。資料づくりや図の編集ソフト向け。</td></tr>
+      <tr><td>印刷</td><td>A4横で、構成図・機器の一覧・ポートの割り当て表（機器の一覧は外すこともできます）。ケーブルに貼る<b>札</b>も印刷できます。</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li id="export-print">図の右上の <span class="ui"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></span>（「探す・書き出す」）で、形式・解像度・背景（あり／透明）・デザイン（いまの／標準）・色（ライト／ダーク）・タイトル・日付・凡例の有無を選んで保存します。<span class="ui">設定</span> › 「バックアップと書き出し」の「PNG」「SVG」は、前回の設定ですぐ保存します。</li>
+    <li>画像と、印刷の構成図には、<b>いま表示している機器だけ</b>が入ります（隠したレイヤーや絞り込みで隠した機器は入りません）。印刷の「機器の一覧」には全部の機器が載ります。印刷はいつも明るい配色です。</li>
+    <li>ルーターの近くに印刷した構成図を貼っておくと、回線のトラブルのときに家族も見られて便利です。</li>
+  </ul>
+  <h3 id="export-import"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>読み込み</h3>
+  <ul>
+    <li><b>このアプリのJSON</b>：中身（機器・つながり・部屋の数）を確かめてから、<b>いまのデータと置き換えます</b>。読み込む前に「いまのデータを書き出す」もできます。直後なら「元に戻す」で戻せます。</li>
+    <li><b>旧版（HomeNet Atlas 1.0.0）のJSON</b>：機器・つながり・部屋・図の位置・IP・MAC・SSID、サブネットとDHCPの範囲を取り込みます。</li>
+    <li><b>このアプリのCSV</b>：機器を<b>追加</b>します（同じ名前の機器はとばし、部屋・グループ・VLANがなければ作ります）。</li>
+    <li><b>そのほかのCSV・テキスト</b>：「まとめて追加」で読み取ります（登録済みの機器はとばします）。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 17 いくつものネットワーク -->
+<section class="sec" id="networks">
+  <h2><span class="no">17</span>いくつものネットワーク（実家・事務所など）</h2>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 150" role="img" aria-labelledby="f18t">
+      <title id="f18t">画面上部の名前を押すと、わが家・実家・事務所などのネットワークを切り替えられる</title>
+      <rect class="bg" width="600" height="150" rx="12"/>
+      <g transform="translate(20 22)"><rect class="surf" width="200" height="34" rx="10"/><text class="t13 xb" x="14" y="23">わが家のネットワーク</text><path d="M178 14l5 5 5-5" class="lns" style="stroke-width:1.8"/></g>
+      <path d="M120 60v22" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/>
+      <g transform="translate(20 88)">
+        <rect class="surf" width="560" height="48" rx="12"/>
+        <use href="#i-house-net" class="gi ci" x="14" y="14" width="20" height="20"/><text class="t12 b" x="42" y="22">実家</text><text class="t11 mu" x="42" y="38">機器12台</text>
+        <rect x="120" y="11" width="72" height="26" rx="8" class="surf2"/><text class="t12 b mid" x="156" y="29">切り替え</text>
+        <use href="#i-house-net" class="gi ci" x="220" y="14" width="20" height="20"/><text class="t12 b" x="248" y="22">事務所</text><text class="t11 mu" x="248" y="38">機器8台</text>
+        <rect x="326" y="11" width="72" height="26" rx="8" class="surf2"/><text class="t12 b mid" x="362" y="29">切り替え</text>
+        <text class="t12 b" x="424" y="22">＋ 新しく作る</text><text class="t12 b" x="424" y="40">複製する</text>
+      </g>
+      <text class="t11 mu" x="240" y="44">押すと「ネットワーク」の画面が開きます</text>
+    </svg>
+    </div>
+  </figure>
+  <ul>
+    <li>画面上部の名前を押すと、名前の変更、ほかのネットワークへの切り替え、新しいネットワーク・複製の作成ができます。</li>
+    <li>切り替えると、いまのネットワークはこのブラウザの別の場所にしまわれます。「元に戻す」の履歴は、切り替えた時点で消えます。</li>
+    <li>「よく使う機器」はネットワークをまたいで共通です。バックアップの書き出しは、ネットワークごとに行います。</li>
+    <li>消したネットワークは元に戻せません。必要なら、先に切り替えて「データを書き出す」でファイルに残してください。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 18 表示とデザイン -->
+<section class="sec" id="look">
+  <h2><span class="no">18</span>表示とデザイン</h2>
+  <p><span class="ui">設定</span> › 「表示」 › 「デザイン」（または図の「表示」→「見た目」）で、画面全体の見た目を4種類から選べます。記録の中身は変わらず、いつでも戻せます。</p>
+  <figure class="wide">
+    <div class="scroll"><svg class="dg" viewBox="0 0 600 150" role="img" aria-labelledby="f19t">
+      <title id="f19t">4つのデザイン：標準、シンプル、計器盤、デザイナーズ</title>
+      <g transform="translate(6 8)">
+        <rect width="138" height="92" rx="10" style="fill:#EDF0F3"/><rect width="138" height="16" rx="10" style="fill:#FFFFFF"/><rect y="8" width="138" height="8" style="fill:#FFFFFF"/>
+        <path d="M44 56h20v-18h18M64 56h18" style="fill:none;stroke:#1D6FD8;stroke-width:2"/>
+        <rect x="10" y="47" width="38" height="18" rx="9" style="fill:#17202B;stroke:#FFC21A;stroke-width:2.5"/><rect x="82" y="29" width="46" height="18" rx="9" style="fill:#FFF;stroke:#CDD4DC"/><rect x="82" y="56" width="46" height="18" rx="9" style="fill:#FFF;stroke:#CDD4DC"/>
+        <text class="t13 b" x="0" y="120">標準</text><text class="t11 mu" x="0" y="138">ライト・ダークを選べる</text>
+      </g>
+      <g transform="translate(156 8)">
+        <rect width="138" height="92" rx="10" style="fill:#FAFAF8"/><rect width="138" height="16" rx="10" style="fill:#F5F5F2"/><rect y="8" width="138" height="8" style="fill:#F5F5F2"/>
+        <path d="M44 56h20v-18h18M64 56h18" style="fill:none;stroke:#7B93D6;stroke-width:1.6"/>
+        <rect x="10" y="47" width="38" height="18" rx="6" style="fill:#FFF;stroke:#3A5BD9;stroke-width:1.6"/><rect x="82" y="29" width="46" height="18" rx="6" style="fill:#FFF;stroke:#ECECE7"/><rect x="82" y="56" width="46" height="18" rx="6" style="fill:#FFF;stroke:#ECECE7"/>
+        <text class="t13 b" x="0" y="120">シンプル</text><text class="t11 mu" x="0" y="138">白いカードと控えめな色</text>
+      </g>
+      <g transform="translate(306 8)">
+        <rect width="138" height="92" rx="4" style="fill:#06080A"/><rect width="138" height="16" rx="4" style="fill:#0C1014"/>
+        <text x="8" y="12" style="font:700 9px var(--mono);fill:#3BE8FF">019  006</text>
+        <path d="M44 56h20v-18h18M64 56h18" style="fill:none;stroke:#4C9AFF;stroke-width:1.6"/>
+        <rect x="10" y="47" width="38" height="18" rx="2" style="fill:#0E1318;stroke:#FFB21E;stroke-width:1.6"/><rect x="82" y="29" width="46" height="18" rx="2" style="fill:#0E1318;stroke:#263240"/><rect x="82" y="56" width="46" height="18" rx="2" style="fill:#0E1318;stroke:#263240"/>
+        <text class="t13 b" x="0" y="120">計器盤</text><text class="t11 mu" x="0" y="138">光る数字・いつも暗い配色</text>
+      </g>
+      <g transform="translate(456 8)">
+        <rect width="138" height="92" style="fill:#F2F2EE"/><rect width="138" height="16" style="fill:#FF4A1C"/><path d="M0 16h138" style="stroke:#111;stroke-width:2"/>
+        <text x="8" y="12" style="font:800 10px var(--font);fill:#111">01</text>
+        <path d="M44 56h20v-18h18M64 56h18" style="fill:none;stroke:#111;stroke-width:2.4"/>
+        <rect x="13" y="50" width="38" height="18" style="fill:#111"/><rect x="10" y="47" width="38" height="18" style="fill:#FF4A1C;stroke:#111;stroke-width:2"/><rect x="82" y="29" width="46" height="18" style="fill:#111"/><rect x="82" y="56" width="46" height="18" style="fill:#111"/>
+        <text class="t13 b" x="0" y="120">デザイナーズ</text><text class="t11 mu" x="0" y="138">朱と黒・いつも明るい配色</text>
+      </g>
+    </svg></div>
+  </figure>
+  <ul>
+    <li><b>明るさ</b>：自動（端末の設定に合わせる）／ライト／ダーク。計器盤とデザイナーズは配色が決まっていて変えられません（標準かシンプルなら選べます）。</li>
+    <li><b>線の形</b>（直角・直線・曲線）、<b>自動整列の向き</b>、<b>機器名の下に出す情報</b>（IP・部屋・種類・なし）、グループの色の印、グリッドにそろえる。</li>
+    <li>計器盤では、画面上部に機器の台数・固定IP・口の使用・つながり・予定の数が計器のように並びます。</li>
+    <li>画像の書き出しは「いまのデザイン」か「標準」を選べます。印刷はいつも明るい配色です。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 19 アプリ -->
+<section class="sec" id="app">
+  <h2><span class="no">19</span>ホーム画面のアプリにする（オフライン対応）</h2>
+  <p>ホーム画面に追加すると、<b>アプリのように</b>開けて、ネットにつながっていなくても使えます。</p>
+  <ul>
+    <li><b>パソコン（Chrome・Edge）・Android</b>：<span class="ui">設定</span> › 「アプリ」 › 「ホーム画面に追加」の「インストール」、またはブラウザのアドレス欄のインストールのボタン。</li>
+    <li><b>iPhone・iPad</b>：Safariの共有ボタン →「ホーム画面に追加」。</li>
+    <li>新しい版は、ネットにつながった状態で開いたときに受け取ります（すぐ反映しないときは、一度閉じて開き直してください）。このガイドも一緒に保存されるので、オフラインで読めます。</li>
+  </ul>
+  <details class="more"><summary>アプリを設置する人向け</summary><div>
+    <p>ホーム画面への追加とオフライン対応は、PWA版（zipの中のフォルダ）を <b>https</b> のWebサイトに置いて開いたときに使えます。HTMLファイルを直接ダブルクリックして開く使い方もできますが、ブラウザによっては保存が不安定です（設定の「データの保存場所」に注意が出ます）。その場合は、こまめに「データを書き出す」でファイルに残してください。置き場所は、このアプリだけのサイト（独自ドメインやサブドメイン）がおすすめです（→ <a href="#privacy">データとプライバシー</a>）。</p>
+  </div></details>
+</section>
+
+<!-- ===================================================== 20 操作の一覧 -->
+<section class="sec" id="keys">
+  <h2><span class="no">20</span>操作の一覧（タッチ・マウス・キー）</h2>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>タッチ（スマホ・タブレット）</h3>
+  <figure class="wide">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 600 150" role="img" aria-labelledby="f20t">
+      <title id="f20t">タッチの操作：つまんで拡大、タップで選ぶ、長押し、ダブルタップ</title>
+      <rect class="bg" width="600" height="150" rx="12"/>
+      <g transform="translate(20 18)">
+        <circle cx="34" cy="40" r="11" class="selsoft" style="stroke:var(--sel);stroke-width:2"/><circle cx="74" cy="40" r="11" class="selsoft" style="stroke:var(--sel);stroke-width:2"/>
+        <path d="M20 40H4" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/><path d="M88 40h16" style="stroke:var(--muted);stroke-width:2" marker-end="url(#arr)"/>
+        <text class="t13 b" x="0" y="84">2本指でつまむ</text><text class="t11 mu" x="0" y="102">拡大・縮小・移動</text>
+      </g>
+      <g transform="translate(166 18)">
+        <rect class="n-end" x="0" y="26" width="90" height="28" rx="14"/><rect x="-3" y="23" width="96" height="34" rx="17" class="sel"/><circle cx="50" cy="40" r="10" class="selsoft" style="stroke:var(--sel);stroke-width:2"/>
+        <text class="t13 b" x="0" y="84">タップ→ドラッグ</text><text class="t11 mu" x="0" y="102">選んでから動かす</text>
+      </g>
+      <g transform="translate(312 18)">
+        <circle cx="40" cy="40" r="10" class="selsoft" style="stroke:var(--sel);stroke-width:2"/><circle cx="40" cy="40" r="20" style="fill:none;stroke:var(--sel);stroke-width:1.6;stroke-dasharray:3 3"/><circle cx="40" cy="40" r="30" style="fill:none;stroke:var(--sel);stroke-width:1.2;stroke-dasharray:2 4;opacity:.7"/>
+        <text class="t13 b" x="0" y="84">長押し</text><text class="t11 mu" x="0" y="102">機器：そのまま動かすと線</text><text class="t11 mu" x="0" y="118">離すと・ほかの所：メニュー</text>
+      </g>
+      <g transform="translate(458 18)">
+        <circle cx="30" cy="40" r="10" class="selsoft" style="stroke:var(--sel);stroke-width:2"/><circle cx="56" cy="40" r="10" class="selsoft" style="stroke:var(--sel);stroke-width:2"/><text class="t11 b mid" x="30" y="44">1</text><text class="t11 b mid" x="56" y="44">2</text>
+        <text class="t13 b" x="0" y="84">ダブルタップ</text><text class="t11 mu" x="0" y="102">機器・線：詳細</text><text class="t11 mu" x="0" y="118">何もない所：拡大</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>選んでいない機器の上からドラッグすると、画面全体が動きます。下から出るパネルは、上のつまみを下へスワイプすると閉じます（Androidは戻るボタンでも）。</figcaption>
+  </figure>
+  <h3><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>マウス</h3>
+  <p>ホイールで拡大・縮小、<kbd>Shift</kbd>+ホイールで横へ、中ボタンのドラッグで移動。何もない所のダブルクリックは、その場所に機器を追加します（スマホのダブルタップは拡大）。右クリックで、その場所や機器でできることのメニュー。</p>
+  <details class="more" open><summary>キーボード（パソコン）</summary><div>
+  <p>アプリの中でも <kbd>?</kbd> で一覧を出せます。Macでは <kbd>Ctrl</kbd> の代わりに <kbd>⌘</kbd> でも動きます。</p>
+  <div class="tbl-wrap"><table class="tbl keys">
+    <thead><tr><th>キー</th><th>すること</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>N</kbd></td><td>機器を追加</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>選んだ機器の詳細（枠・メモは文字の編集）</td></tr>
+      <tr><td><kbd>F2</kbd></td><td>名前を変える（枠・メモは文字）</td></tr>
+      <tr><td><kbd>C</kbd></td><td>選んだ機器をほかの機器とつなぐ</td></tr>
+      <tr><td><kbd>T</kbd></td><td>メモを置く（<kbd>Ctrl</kbd>+<kbd>Enter</kbd> で確定）</td></tr>
+      <tr><td><kbd>P</kbd></td><td>パーツを開く・閉じる</td></tr>
+      <tr><td><kbd>Delete</kbd></td><td>削除</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>複製</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>コピー・切り取り・貼り付け</td></tr>
+      <tr><td><kbd>Shift</kbd>+クリック ／ <kbd>Shift</kbd>+ドラッグ</td><td>複数選ぶ ／ 範囲で選ぶ</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>すべて選ぶ</td></tr>
+      <tr><td>矢印キー</td><td>少し動かす（<kbd>Shift</kbd> で大きく）</td></tr>
+      <tr><td><kbd>Alt</kbd>+ドラッグ</td><td>ガイド・方眼を一時的に無視</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>枠で囲む</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>位置の固定・解除</td></tr>
+      <tr><td><kbd>F</kbd> ／ <kbd>L</kbd></td><td>全体を表示 ／ 自動整列</td></tr>
+      <tr><td><kbd>+</kbd> / <kbd>−</kbd> ／ <kbd>0</kbd></td><td>拡大・縮小 ／ 100%に戻す</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>探す・書き出す（機器の画面では検索欄へ）</td></tr>
+      <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd></td><td>選んだものの右クリックメニュー</td></tr>
+      <tr><td><kbd>W</kbd></td><td>配線の画面へ（もう一度で構成図へ）</td></tr>
+      <tr><td><kbd>1</kbd>〜<kbd>6</kbd></td><td>画面の切り替え</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> ／ <span class="nw"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span></td><td>元に戻す ／ やり直す（<kbd>Ctrl</kbd>+<kbd>Y</kbd> でも）</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>選択の解除・閉じる（ドラッグ中なら取り消し）</td></tr>
+      <tr><td><kbd>/</kbd> ／ <kbd>?</kbd></td><td>機器の一覧で検索欄へ ／ キーの一覧</td></tr>
+    </tbody>
+  </table></div>
+  </div></details>
+</section>
+
+<!-- ===================================================== 21 用語集 -->
+<section class="sec" id="words">
+  <h2><span class="no">21</span>用語集</h2>
+  <p>出てくる順に並べています。わからない言葉があっても、使うのに困ることはほとんどありません。</p>
+  <dl class="glossary">
+    <dt>ONU（光回線終端装置）</dt><dd>光ファイバーの信号を、家の機器が使える信号に変える箱。回線会社から借りていることが多い機器です。</dd>
+    <dt>ホームゲートウェイ</dt><dd>ONUとルーターが1台になった機器。光回線でよく使われます（→ <a href="#patterns">よくある家の形</a>）。</dd>
+    <dt>ルーター</dt><dd>家の中の機器をインターネットにつなぐ「交通整理役」。機器に番号（IPアドレス）を配る役も持っています。</dd>
+    <dt>中継器・メッシュWi-Fi</dt><dd>Wi-Fiの届く範囲を広げる機器。メッシュは親機と子機が1つのWi-Fiとして協力するタイプです。</dd>
+    <dt>スイッチングハブ（スイッチ・ハブ）</dt><dd>LANケーブルの差し込み口を増やす分岐の箱。</dd>
+    <dt>口（ポート）</dt><dd>ケーブルを挿す差し込み口。</dd>
+    <dt>WAN・LAN</dt><dd>WANはインターネット側（ONUへつなぐ口）、LANは家の中側です。</dd>
+    <dt>IPアドレス</dt><dd>ネットワークの中で機器を見分ける番号（例：192.168.1.30）。住所の番地のようなものです。</dd>
+    <dt>ネットワーク（サブネット）</dt><dd>192.168.1.x のように、前の部分が同じ番号のまとまり。ゲスト用Wi-Fiなどで分けることがあります。</dd>
+    <dt>自動（DHCP）・自動で割り当てる範囲</dt><dd>ルーターが機器に番号を自動で貸し出すしくみと、その番号の範囲（例：.20〜.99）。ルーターの管理画面の「DHCPサーバー」で確認できます。</dd>
+    <dt>固定IP</dt><dd>番号を決めて変わらないようにした機器。プリンターやNASに使います。</dd>
+    <dt>ゲートウェイ</dt><dd>家の中からインターネットへ出る出口。ふつうはルーターのIP（例：192.168.1.1）です。</dd>
+    <dt>サブネットマスク</dt><dd>ネットワークの大きさを表す設定。家庭ではほとんどが 255.255.255.0（/24）です。</dd>
+    <dt>DNS</dt><dd>「example.com」のような名前を番号に置き換えるしくみ。ふつうはルーター任せで大丈夫です。</dd>
+    <dt>MACアドレス</dt><dd>機器ごとの識別番号（AA:BB:CC:DD:EE:FF）。スマホは「プライベートアドレス」で変わることがあります。</dd>
+    <dt>SSID</dt><dd>Wi-Fiの名前。スマホのWi-Fi一覧に出る名前です。</dd>
+    <dt>管理画面</dt><dd>ブラウザでルーターなどの設定を見る画面（例：http://192.168.1.1）。</dd>
+    <dt>ブリッジ（APモード）</dt><dd>ルーターの働きを止めて、Wi-Fiを出す役だけにする動き方。二重ルーターを避けるときに使います。</dd>
+    <dt id="words-double">二重ルーター</dt><dd>ルーターとして動く機器が2台つながっている状態。一部のゲームやカメラで不具合の原因になります。</dd>
+    <dt>PPPoE・IPoE</dt><dd>光回線でインターネットにつなぐ方式の種類。契約書類やルーターの管理画面に書いてあります。わからなければ空欄で大丈夫です。</dd>
+    <dt>VLAN</dt><dd>1台のハブやルーターの中で、ネットワークを見えない仕切りで分けるしくみ。使っていなければ気にしなくて大丈夫です。</dd>
+    <dt>PoE</dt><dd>LANケーブルで電気も送るしくみ。防犯カメラやWi-Fiの子機などで使います。</dd>
+    <dt>LAG（リンクアグリゲーション）</dt><dd>2本以上のケーブルを束ねて、1本のように速く・切れにくくするしくみ。</dd>
+    <dt>SFP</dt><dd>光ファイバー用などの部品を差し込むタイプの口。主に業務用のハブにあります。</dd>
+    <dt>LANコンセント</dt><dd>壁に付いたLANケーブル用の差し込み口。壁の中のケーブルで別の部屋につながっています。</dd>
+    <dt>Cat5e・Cat6 など</dt><dd>LANケーブルの規格。数字が大きいほど速い通信に対応します。</dd>
+    <dt>JSON・CSV</dt><dd>JSONはこのアプリのバックアップ用ファイル、CSVは表計算ソフトで開ける一覧です。</dd>
+  </dl>
+</section>
+
+<!-- ===================================================== 22 プライバシー -->
+<section class="sec" id="privacy">
+  <h2><span class="no">22</span>データとプライバシー</h2>
+  <div class="box good"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><p>記録はすべて、このスマホ・パソコンのブラウザの中に保存します。記録をインターネットへ送る通信は、ブラウザの安全設定で禁止しています。外へ出るのは、自分で「管理画面を開く」を押したときと、自分で書き出したファイルだけです（https のサイトに置いた版は、新しい版の確認のために、置いたサイトからアプリ本体を読み込みます）。</p></div>
+  <ul>
+    <li><b>パスワードは記録しないでください</b>。Wi-Fiのパスワードを入れる欄はありません。SSIDやPPPoEの接続IDの欄にも書かないのがおすすめです。書き出したファイルや印刷には、記録したIP・MAC・SSIDなどがそのまま入ります。人に渡すときは中身に気をつけてください。</li>
+    <li>ユーザー名やパスワードを含む管理画面のURL（例：<span class="mono">http://user@…</span>）は開きません。</li>
+    <li>ほかの人からもらったJSONやCSVを読み込んでも、中の文字がプログラムとして動くことはありません。</li>
+    <li>Webサイトに置く場合は、このアプリだけのサイトがおすすめです。同じサイトのほかのページからは、ブラウザの保存領域を読める仕組みのためです。</li>
+    <li>別のタブで同じアプリを開いて変更すると、こちらにも反映されます（そのとき「元に戻す」の履歴は消えます）。</li>
+  </ul>
+</section>
+
+<!-- ===================================================== 23 困ったとき -->
+<section class="sec" id="faq">
+  <h2><span class="no">23</span>困ったとき</h2>
+  <h3>記録・操作</h3>
+  <details class="qa" id="faq-ipmac"><summary>機器のIPアドレスやMACアドレスはどこで見られますか？</summary><div><ul>
+    <li><b>いちばん簡単</b>：ルーターの管理画面の「接続中の端末」などの一覧を、そのまま貼り付けて<a href="#check-reconcile">照合</a>する。</li>
+    <li><b>iPhone</b>：設定 › Wi-Fi › 接続中のネットワークの（i）。</li>
+    <li><b>Android</b>：設定 › ネットワーク › Wi-Fi › 接続中のネットワーク（機種によって違います）。</li>
+    <li><b>Windows</b>：設定 › ネットワークとインターネット › （Wi-Fi または イーサネット）› プロパティ。</li>
+    <li><b>プリンター・NAS</b>：本体のメニューの「ネットワーク設定」や、印刷できる設定ページ。</li>
+  </ul><p>わからない機器は空欄のままで大丈夫です。</p></div></details>
+  <details class="qa" id="faq-notfound"><summary>機器が図に見当たりません／追加したのに出てきません</summary><div><ul>
+    <li>図の上に「N台を非表示中」と出ていたら、「すべて表示」を押します（「表示」の絞り込み）。</li>
+    <li>レイヤーが隠れていないか、「表示」→「レイヤー」の目のマークを確かめます。隠れている・ロック中のレイヤーには追加できないので、見えているレイヤーに入れたと知らせが出ます。</li>
+    <li><kbd>Ctrl</kbd>+<kbd>F</kbd>（探す）で名前やIPを入れると、隠れている機器も「（非表示中）」として見つかります。<kbd>F</kbd> で全体を表示すると、遠くに置いた機器も画面に入ります。</li>
+    <li>機器の画面で、検索欄やチップで絞り込んだままになっていないか確かめます。</li>
+  </ul></div></details>
+  <details class="qa" id="faq-move"><summary>機器をドラッグしても動きません</summary><div><ul>
+    <li>錠のマークがあれば<b>位置の固定</b>です。右クリック →「見た目」→「位置の固定を解除」（<kbd>Ctrl</kbd>+<kbd>L</kbd>）。</li>
+    <li>レイヤーが<b>ロック</b>されていないか確かめます。</li>
+    <li>「<b>間取り</b>」では、機器は部屋の中に自動で並びます。ほかの部屋の枠へドラッグすると部屋が変わります。</li>
+    <li>スマホでは、先に<b>タップして選んでから</b>ドラッグします。</li>
+  </ul></div></details>
+  <details class="qa" id="faq-rooms-mode"><summary>間取りで、メモ・枠・並び方・すべて選ぶが使えません</summary><div><p>間取りは部屋ごとに自動で並べる表示なので、これらは「つながり」の表示で使います。インターネットは家の外（上）にいつも表示し、部屋には入れられません。</p></div></details>
+  <details class="qa" id="faq-connect"><summary>「この2台はすでにつながっています」と出ます</summary><div><p>同じ2台のあいだに線は1本だけです。2本以上のケーブルを使っているなら、線を右クリック →「束ねる本数（LAG）」で本数を記録します。つなぎ方を変えるときは、線を選んで下のバーで。たたんだグループの中の機器とつなぐときは、先にグループをひらいてください。</p></div></details>
+  <details class="qa" id="faq-wire"><summary>配線の画面でケーブルが挿せません</summary><div><ul>
+    <li>無線だけの機器（スマホなど）にはケーブルを挿せません。同じ機器の口どうしもつなげません。</li>
+    <li>口がすべて埋まっているときは、ポート画面で口の数を増やすか、スイッチングハブを追加します。束ねた線（LAG）は、続いた口が本数ぶん必要です。</li>
+    <li>挿し先の機器と別の線でつながっているときは「この線に置きかえますか？」と聞かれます。「置きかえる」で前の線を外します。</li>
+    <li>WANの口を2つから1つに戻せないときは、WAN2に挿さっているケーブルを先に別の口へ移します。</li>
+  </ul></div></details>
+  <details class="qa" id="faq-undo"><summary>「元に戻す」で戻せません</summary><div><p>「元に戻す」は80回まで、開いているあいだだけ使えます。ページを読み込み直したり、ほかのネットワークに切り替えたりすると、履歴は消えます。大きな変更の前には「データを書き出す」をしておくと安心です。</p></div></details>
+  <details class="qa" id="faq-ipwarn"><summary>IPアドレスの欄に警告が出ます</summary><div><ul>
+    <li><b>同じIPアドレスです</b>：ほかの機器と番号が重なっています。どちらかの記録が古いだけのこともあります。</li>
+    <li><b>自動で割り当てる範囲の中です</b>：固定の番号が、ルーターが自動で割り当てる範囲に入っています。範囲の外の番号にすると安全です（提案された番号を押すとすぐ入ります）。</li>
+    <li><b>どれにも入っていません</b>：登録したネットワークと違います。打ち間違いでなければ、そのままでも大丈夫です。</li>
+  </ul></div></details>
+  <details class="qa" id="faq-theme"><summary>明るさ（ライト・ダーク）を変えられません</summary><div><p>「計器盤」と「デザイナーズ」は配色が決まっているデザインです。「標準」か「シンプル」に切り替えると選べます。</p></div></details>
+  <details class="qa" id="faq-table"><summary>「表で編集」が見当たりません</summary><div><p>「表で編集」はパソコンなど、横幅の広い画面だけの機能です。スマホでは「まとめて追加」や「選ぶ」でまとめて変更できます。</p></div></details>
+  <h3>保存・ファイル</h3>
+  <details class="qa" id="faq-save"><summary>上に「保存できません」と出ます</summary><div><p>空き容量が足りないなどで、ブラウザに保存できていません。いま開いている内容はまだ消えていないので、すぐに <span class="ui">設定</span> › 「バックアップと書き出し」 › 「データを書き出す」でファイルに残してください。保存できないまま閉じようとすると、ブラウザが確認を出します。ネットワークの切り替えで「空き容量が足りず、しまえませんでした」と出たときも同じです。</p></div></details>
+  <details class="qa" id="faq-private"><summary>「保存されません」と出ます（プライベートモードなど）</summary><div><p>この環境ではブラウザに保存できません。閉じると記録は消えるので、作業のあとは必ず「データを書き出す」でファイルに残し、次回は「データを読み込む」で戻してください。</p></div></details>
+  <details class="qa" id="faq-broken"><summary>「保存されていたデータを読み込めませんでした」と出ました</summary><div><p>保存されていたデータが壊れていたため、上書きしないよう保存を止めています。「ファイルに保存して新しく始める」を選ぶと、壊れていたデータをファイルに残してから始められます。書き出しておいたJSONがあれば「データを読み込む」で戻せます。</p></div></details>
+  <details class="qa" id="faq-csv"><summary>CSVやテキストを読み込んだら「まとめて追加」になりました</summary><div><p>置き換えになるのはこのアプリのJSONだけです。ほかのCSV・テキストは一覧として読み取り、登録済みの機器はとばします。このアプリで書き出したCSVは、そのまま機器を追加します（全部が登録済みなら「どれも登録済みでした」と出ます）。大きすぎるファイルは、上限の分だけ読み込むと知らせます（→ <a href="#limits">上限</a>）。</p></div></details>
+  <details class="qa" id="faq-reconcile"><summary>照合で「一覧から機器を読み取れませんでした」と出ます</summary><div><p>1行に1台ずつ、IPアドレスかMACアドレスが入った形で貼り付けてください。表の見出しの行が入っていても大丈夫です。ファイルは2MBまでです。</p></div></details>
+  <details class="qa" id="faq-move-device"><summary>別のスマホやパソコンにデータを移したい</summary><div><p>元の端末で「データを書き出す」→ できたJSONファイルを新しい端末へ（メール・クラウドの保管場所など）→ 新しい端末で「データを読み込む」。いくつものネットワークを使っているときは、ネットワークごとに切り替えて書き出してください。</p></div></details>
+  <details class="qa" id="faq-update"><summary>新しい版にならない（ホーム画面のアプリ）</summary><div><p>ネットにつながった状態でアプリを開くと、新しい版を受け取ります。すぐに切り替わらないときは、アプリを一度閉じて開き直してください。</p></div></details>
+  <details class="qa" id="faq-reset"><summary>最初からやり直したい</summary><div><p><span class="ui">設定</span> › 「アプリ」 › 「すべて消す」。機器・つながり・部屋・グループ・VLAN・枠・メモ・保存した並び方を消します（直後なら「元に戻す」で戻せます）。ひな形やサンプルから始め直すこともできます。</p></div></details>
+</section>
+
+<!-- ===================================================== 24 上限 -->
+<section class="sec" id="limits">
+  <h2><span class="no">24</span>できることの上限</h2>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>項目</th><th>上限</th></tr></thead>
+    <tbody>
+      <tr><td>機器</td><td>3000台（つながり 6000本、部屋 500、枠・メモ 2000）</td></tr>
+      <tr><td>グループ・VLAN</td><td>それぞれ 200</td></tr>
+      <tr><td>レイヤー</td><td>50</td></tr>
+      <tr><td>ネットワークの範囲</td><td>6つ</td></tr>
+      <tr><td>保存できる並び方</td><td>構成図・配線それぞれ 12</td></tr>
+      <tr><td>よく使う機器</td><td>60件</td></tr>
+      <tr><td>元に戻す</td><td>80回（開いているあいだ）</td></tr>
+      <tr><td>一度に追加</td><td>20台（まとめて追加は 300行）</td></tr>
+      <tr><td>LANポート</td><td>機器ごとに 64口まで（配線の図は 48口まで）</td></tr>
+      <tr><td>読み込むファイル</td><td>32MB（照合に読み込むファイルは 2MB）</td></tr>
+      <tr><td>拡大率</td><td>15%〜250%</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  HomeNet Atlas 使い方ガイド　版 1.2.4。<br>
+  このガイドは、アプリと同じフォルダに置いた <span class="mono">help.html</span> です。アプリの <span class="ui">設定</span> › 「アプリ」 › 「使い方」、はじめの画面の「使い方」、キーの一覧（<kbd>?</kbd>）から開けます。
+</footer>
+</main>
+</div>
+<a class="totop" href="#toc" aria-label="目次へ">↑ 目次</a>
+</body>
+</html>
